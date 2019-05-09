@@ -1,3 +1,10 @@
+# folders
+/log
+/patient_result
+/tblogs
+/trained_model
+
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
