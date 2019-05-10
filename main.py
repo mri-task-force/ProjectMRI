@@ -21,10 +21,13 @@ from PIL import Image
 from logger import log, tensorboard_dir, is_aug, model_name, PATH_trained_model, PATH_log, PATH_patient_result, PATH_tblogs
 import utility.save_load
 import utility.fitting
-import process.load_dataset_v3
+import process.load_dataset
 import models.resnets
 import utility.evaluation
 import random
+
+from models.resnet import *
+from models.densenet import *
 
 # remove the tensorboard_dir before running
 try:
@@ -70,7 +73,7 @@ log.logger.info('is_spacing: {}'.format(is_spacing))
 log.logger.info('std_spacing_method: {}'.format(std_spacing_method))
 
 # init datasets
-mean_std, max_size_spc, global_hw_min_max_spc_world = process.load_dataset_v3.init_dataset(
+mean_std, max_size_spc, global_hw_min_max_spc_world = process.load_dataset.init_dataset(
     data_chooses=data_chooses, test_size=0.2, std_spacing_method=std_spacing_method, new_init=True
 )
 log.logger.info('mean_std: {}'.format(mean_std))
@@ -101,9 +104,9 @@ test_transform = transforms.Compose([
 ])
 
 # load datasets
-train_data = process.load_dataset_v3.MriDataset(train=True, transform=train_transform, is_spacing=is_spacing)
-train_eval_data = process.load_dataset_v3.MriDataset(train=True, transform=train_eval_transform, is_spacing=is_spacing)
-test_data = process.load_dataset_v3.MriDataset(train=False, transform=test_transform, is_spacing=is_spacing)
+train_data = process.load_dataset.MriDataset(train=True, transform=train_transform, is_spacing=is_spacing)
+train_eval_data = process.load_dataset.MriDataset(train=True, transform=train_eval_transform, is_spacing=is_spacing)
+test_data = process.load_dataset.MriDataset(train=False, transform=test_transform, is_spacing=is_spacing)
 
 def checkImage(num=5):
     """
@@ -132,7 +135,11 @@ train_loader_eval = torch.utils.data.DataLoader(dataset=train_eval_data, batch_s
 test_loader = torch.utils.data.DataLoader(dataset=test_data, batch_size=batch_size, shuffle=False)              # test dataset loader, for evaluation
 
 # Declare and define the model, optimizer and loss_func
-model = models.resnets.resnet34(num_classes=num_classes, img_in_channels=1)
+# model = models.resnets.resnet18(pretrained=True, num_classes=num_classes, img_in_channels=1)
+# model = resnet34(pretrained=True, num_classes=num_classes)
+# model = resnet152(pretrained=True, num_classes=num_classes)
+model = densenet121(pretrained=True, num_classes=num_classes)
+
 optimizer = torch.optim.SGD(params=model.parameters(), lr=lr, momentum=momentum, weight_decay=weight_decay)
 loss_func = nn.CrossEntropyLoss(weight=torch.tensor(class_weight)) if is_class_weighted_loss_func else nn.CrossEntropyLoss()
 log.logger.info(model)

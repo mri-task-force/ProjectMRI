@@ -11,7 +11,15 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
- 
+import torch.utils.model_zoo as model_zoo
+
+model_urls = {
+    'resnet18': 'https://download.pytorch.org/models/resnet18-5c106cde.pth',
+    'resnet34': 'https://download.pytorch.org/models/resnet34-333f7ec4.pth',
+    'resnet50': 'https://download.pytorch.org/models/resnet50-19c8e357.pth',
+    'resnet101': 'https://download.pytorch.org/models/resnet101-5d3b4d8f.pth',
+    'resnet152': 'https://download.pytorch.org/models/resnet152-b121ed2d.pth',
+}
 
 class ResidualBlock(nn.Module):
     '''
@@ -63,7 +71,7 @@ class ResNet(nn.Module):
 
         # global average pooling layer
         self.global_avgpool = nn.AdaptiveAvgPool2d(output_size=(1, 1))
-        self.fc = nn.Linear(512, num_classes)
+        self.fc_ = nn.Linear(512, num_classes)
     
     def _make_layer(self, block, out_channels, num_blocks, stride=1):
         '''
@@ -97,25 +105,48 @@ class ResNet(nn.Module):
         
         x = self.global_avgpool(x)
         x = x.view(x.size(0), -1)
-        x = self.fc(x)
+        x = self.fc_(x)
 
         return x
 
 
-def resnet18(num_classes=3, img_in_channels=1):
+def resnet18(pretrained=False, num_classes=3, img_in_channels=1):
     """
     Return:
         the 18 layers ResNet model
     """
-    return ResNet(block=ResidualBlock, layers=[2, 2, 2, 2], num_classes=num_classes, img_in_channels=img_in_channels)
+    model = ResNet(block=ResidualBlock, layers=[2, 2, 2, 2], num_classes=num_classes, img_in_channels=img_in_channels)
 
+    if pretrained:
+        print("使用预训练模型")
+        # model.load_state_dict(model_zoo.load_url(model_urls['resnet34']))
+        pretrained_dict = model_zoo.load_url(model_urls['resnet18'])
+        model_dict = model.state_dict()
+        pretrained_dict = {k: v for k,
+                           v in pretrained_dict.items() if k in model_dict}
+        model_dict.update(pretrained_dict)
+        model.load_state_dict(model_dict)
 
-def resnet34(num_classes=3, img_in_channels=1):
+    return model
+
+def resnet34(pretrained=False, num_classes=3, img_in_channels=1):
     """
     Return:
         the 34 layers ResNet model
     """
-    return ResNet(block=ResidualBlock, layers=[3, 4, 6, 3], num_classes=num_classes, img_in_channels=img_in_channels)
+    model = ResNet(block=ResidualBlock, layers=[
+                   3, 4, 6, 3], num_classes=num_classes, img_in_channels=img_in_channels)
+    if pretrained:
+        print("使用预训练模型")
+        # model.load_state_dict(model_zoo.load_url(model_urls['resnet34']))
+        pretrained_dict = model_zoo.load_url(model_urls['resnet34'])
+        model_dict = model.state_dict()
+        pretrained_dict = {k: v for k, v in pretrained_dict.items() if k in model_dict}
+        print(pretrained_dict)
+        model_dict.update(pretrained_dict)
+        model.load_state_dict(model_dict)
+
+    return model
 
 
 if __name__ == '__main__':

@@ -177,3 +177,11 @@ pytorch的norm
 - 完善模型。考虑添加正则项，防止模型过拟合，特别当模型层数较多时。
 - 尝试其他 CNN 模型，ResNet等。
 - 对 bounding box (抠出病变区域) 的数据进行训练与测试
+
+
+## 2019.5.10
+> add by peng
+
+1. 将load_dataset_v3改名为laod_dataset；
+2. models库添加模型alexnet、densenet、inception、mobilenet、resnet、squeezenet、vggnet；
+3. 尝试用pre-trained模型进行训练；

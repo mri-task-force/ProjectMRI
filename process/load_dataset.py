@@ -427,6 +427,8 @@ class MriDataset(Data.Dataset):
             #     self.global_hw_min_max_spc_world[3]+1,    # right
             #     self.global_hw_min_max_spc_world[1]+1     # lower
             # ))
+        
+        img = img.resize(size=(224, 224), resample=Image.NEAREST)
 
         # 0. 在这里做数据增广
         if self.transform != None:
