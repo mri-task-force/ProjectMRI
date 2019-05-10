@@ -31,8 +31,8 @@ if not os.path.exists(PATH_tblogs):
 
 now_time = datetime.datetime.strftime(datetime.datetime.now(), '%Y-%m-%d-%H-%M-%S') + '='   # 用于以下文件名的命名
 
-is_aug = False
-model_name = '{}ResNet34-spc-cut-aug'.format(now_time) if is_aug else '{}ResNet34-spc-cut'.format(now_time) # to save the model
+is_aug = True
+model_name = '{}Model-spc-cut-aug'.format(now_time) if is_aug else '{}Model-spc-cut'.format(now_time) # to save the model
 patient_json_dir = ['{}{}patient-train-spc-cut.json'.format(PATH_patient_result, now_time), '{}{}patient-test-spc-cut.json'.format(PATH_patient_result, now_time)] 
 if is_aug: 
     patient_json_dir = ['{}{}patient-train-spc-cut-aug.json'.format(PATH_patient_result, now_time), '{}{}patient-test-spc-cut-aug.json'.format(PATH_patient_result, now_time)]
