@@ -95,13 +95,18 @@
 <table>
     <tr>
         <td><center><img src="assets/train_class_acc.svg">train_class_acc</center></td>
+    </tr>
+    <tr>
         <td><center><img src="assets/test_class_acc.svg">train_class_acc</center></td>
-    </tr>  
+    </tr>
     <tr>
         <td><center><img src="assets/train_loss.svg">train_loss</center></td>
-        <td><center><img src="assets/train_loss_log.svg">train_loss_log</center>	</td>
+    </tr>
+     <tr>
+        <td><center><img src="assets/train_loss_log.svg">train_loss_log</center></td>
     </tr>
 </table>
+
 
 
 
