@@ -63,7 +63,14 @@
 - lr_decay_period = 30 (epoch)
 - lr_decay_rate = 2
 
+* 使用的模型
 
+  * ResNet34, no pretrain
+  * ResNet34, pretrain
+  * ResNet152, pretrain
+  * DenseNet121, pretrain
+
+  
 
 **结果**
 
@@ -88,17 +95,21 @@
 <table>
     <tr>
         <td><center><img src="assets/train_class_acc.svg">train_class_acc</center></td>
-    </tr>
-    <tr>
         <td><center><img src="assets/test_class_acc.svg">train_class_acc</center></td>
-    </tr>
+    </tr>  
     <tr>
         <td><center><img src="assets/train_loss.svg">train_loss</center></td>
-    <tr>
-        <td><center><img src="assets/train_loss_log.svg">train_loss_log_scale</center>	</td>
+        <td><center><img src="assets/train_loss_log.svg">train_loss_log</center>	</td>
     </tr>
 </table>
 
+
+
+**TODO**
+
+* 3D CNN
+
+* 多模态
 
 
 
