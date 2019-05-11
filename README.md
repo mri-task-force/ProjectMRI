@@ -1,3 +1,108 @@
+# :pencil2:2019.5.11
+
+**初始化数据集，统计所需数据**
+
+> 所有的取整操作，都使用 `round`
+
+- 按病人随机划分训练集和测试集，其中测试集约占 20%，除去没有肿瘤区域的 slides
+- 统计均值、标准差。遍历数据集，得到
+  - 训练集的均值和方差
+  - 测试集的均值和方差
+
+------
+
+- 记录每张图片的大小 (shape)，记为 `shape` (512 * 512)
+- 记录每张图片的 spacing，以及整个数据集 spacing 字段的众数，作为标准 spacing (其他图片都将 resize 到这个 spacing)，记为 `global_std_spacing_mode`
+- 计算每张图片 resize 到标准 spacing 后的大小 (shape)，并记为 `shape_spc`，并记录 spacing 之后图片大小的最大值，即 `shape_spc` 的最大值，记为 `max_size_spc` (615)
+
+------
+
+- 记录每张图片的肿瘤区域
+- 记录每张图片 spacing 之后的肿瘤区域
+
+<table>
+    <tr>
+        <td><center><img src="assets/tumor.png"></center></td>
+    </tr>
+</table>
+
+左图，是 spacing 之后的一张最小的图片 (最小的大小是 384 * 384)，红色区域是它的肿瘤区域
+
+右图，是 spacing 之后的最大的图片，615 * 615
+
+进行坐标变换，将左图放到右图中，那左图就放在了右图的蓝色正方形处，而黄色区域是肿瘤区域
+
+对所有图片都做这样的坐标变换，放大最大图的中心
+
+现在，找出整个数据集中，包含所有图片肿瘤区域的边框 (右图的青色区域)，青色区域在最小图区域里
+
+
+
+**数据预处理步骤**
+
+1. 通过 `SimpleITK` 读取图片，数据类型 `numpy int16`，数据格式 `(h, w, c)`
+2. 将 `numpy` 类型的图片转为 `PIL.Image` ，数据类型 `PIL.Image.Image image mode=I;16`，数据格式 `(h, w, c)`
+3. 如果图片的原始大小 (`shape`) 和 resize 到标准 spacing 后的大小 (`shape_spc`) 不相等，那么将图片 resize 到标准 spacing，即 resize 到 `shape_spc`
+4. 如果图片 spacing 之后的大小不是最大的，即 `shape_spc != max_size_spc`，那么将它 `CenterCrop` 到最大的图片大小 (这时图片放在中心，周围有一圈黑边)
+5. 包含所有图片肿瘤区域的边框，是一个 h * w 长方形，h 是长边。最后切割出一个 h * h 的正方形区域，这个正方形的中心是长方形的中心。
+6. 将图片 resize 到 244 * 244
+7. 数据增广
+   - `RandomRotation, degrees=[-10, 10]`
+8. 转成 tensor，数据类型 `torch.int16`，数据格式 `(c, h, w)`
+9. 类型转换，数据类型 `torch.float32`，数据格式 `(c, h, w)`
+10. 归一化，训练集和测试集用各自的均值和标准差
+
+
+
+**训练**
+
+- loss function class weight = true
+- weighted random sampler = false
+- weight_decay = 0.0001
+- lr = 0.001
+- lr_decay_period = 30 (epoch)
+- lr_decay_rate = 2
+
+
+
+**结果**
+
+尝试多个模型，无论有无预训练模型，多次训练，结果都是这样。训练集都到 100%，若使用预训练模型，几个 epoch 之后训练集就到 100%。
+
+训练集混淆矩阵：
+
+| truth/predict | 0    | 1    | 2    | Acc                   |
+| ------------- | ---- | ---- | ---- | --------------------- |
+| 0             | 1890 | 0    | 0    | 1890/1890 (100.0000%) |
+| 1             | 0    | 269  | 0    | 269/269 (100.0000%)   |
+| 2             | 0    | 0    | 138  | 138/138 (100.0000%)   |
+
+测试集混淆矩阵：
+
+| truth/predict | 0    | 1    | 2    | Acc                |
+| ------------- | ---- | ---- | ---- | ------------------ |
+| 0             | 463  | 57   | 3    | 463/523 (88.5277%) |
+| 1             | 57   | 6    | 0    | 6/63 (9.5238%)     |
+| 2             | 30   | 7    | 0    | 0/37 (0.0000%)     |
+
+<table>
+    <tr>
+        <td><center><img src="assets/train_class_acc.svg">train_class_acc</center></td>
+    </tr>
+    <tr>
+        <td><center><img src="assets/test_class_acc.svg">train_class_acc</center></td>
+    </tr>
+    <tr>
+        <td><center><img src="assets/train_loss.svg">train_loss</center></td>
+    <tr>
+        <td><center><img src="assets/train_loss_log.svg">train_loss_log_scale</center>	</td>
+    </tr>
+</table>
+
+
+
+
+
 # :pencil: 2019.4.16 
 
 ## 1 注意事项
