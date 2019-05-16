@@ -13,12 +13,14 @@ import torch
 import torch.nn as nn
 from tensorboardX import SummaryWriter
 import tensorflow as tf
+import tfplot
+import numpy as np
 
 # import the files of mine
 from settings import log
 import settings
 import utility.evaluation
-
+import utility.confusion
 
 
 def train(model, train_loader, loss_func, optimizer, device):
@@ -110,6 +112,9 @@ def fit(model, num_epochs, optimizer, device, train_loader, test_loader, train_l
     write_op = tf.summary.merge_all()
     session = tf.InteractiveSession()
     session.run(tf.global_variables_initializer())
+
+    writer_cm_train = tf.summary.FileWriter(settings.DIR_tb_cm + 'train', session.graph)
+    writer_cm_test = tf.summary.FileWriter(settings.DIR_tb_cm + 'test', session.graph)
     ######### tensorboard #########
 
     for epoch in range(num_epochs):
@@ -122,8 +127,8 @@ def fit(model, num_epochs, optimizer, device, train_loader, test_loader, train_l
         log.logger.info('Average train loss in this epoch: {}'.format(loss))
 
         # evaluate step
-        train_accuracy, train_confusion, train_class_acc = utility.evaluation.evaluate(model, train_loader_eval, device, num_classes, test=False)
-        test_accuracy, test_confusion, test_class_acc = utility.evaluation.evaluate(model, test_loader, device, num_classes, test=True)
+        train_accuracy, train_confusion, train_class_acc, train_cm = utility.evaluation.evaluate(model, train_loader_eval, device, num_classes, test=False)
+        test_accuracy, test_confusion, test_class_acc, test_cm = utility.evaluation.evaluate(model, test_loader, device, num_classes, test=True)
 
         # lr decay
         if lr_decay_period != None:
@@ -155,6 +160,15 @@ def fit(model, num_epochs, optimizer, device, train_loader, test_loader, train_l
             summary = session.run(write_op, {log_var[3]: float(test_confusion[iw, -1])})
             w.add_summary(summary, epoch)
             w.flush()
+
+        # cm
+        summary = tfplot.figure.to_summary(utility.confusion.plot_confusion_matrix(train_cm, np.array(['0', '1', '2'])), tag='train')
+        writer_cm_train.add_summary(summary, epoch)
+        writer_cm_train.flush()
+
+        summary = tfplot.figure.to_summary(utility.confusion.plot_confusion_matrix(test_cm, np.array(['0', '1', '2'])), tag='test')
+        writer_cm_test.add_summary(summary, epoch)
+        writer_cm_test.flush()
 
         # with SummaryWriter(log_dir=settings.DIR_tblog, comment='train') as writer:
         #     writer.add_scalar('data/train_accuracy', train_accuracy, epoch)

@@ -53,5 +53,6 @@ PATHS_patient_result_json = [
     '{}{}train.json'.format(_DIR_patient_result, now_time),
     '{}{}test.json'.format(_DIR_patient_result, now_time)
 ]
+DIR_tb_cm = DIR_tblog + 'cm/'
 
 log = logger.Logger(PATH_log, level='debug')

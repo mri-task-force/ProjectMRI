@@ -37,6 +37,7 @@ def evaluate(model, val_loader, device, num_classes, test=True):
     """
     patient_json = {}
     confusion_matrix = np.zeros((num_classes, num_classes + 2))
+    cm = np.zeros((num_classes, num_classes), dtype=np.int)
     # evaluate the model
     model.eval()
     # context-manager that disabled gradient computation
@@ -110,6 +111,7 @@ def evaluate(model, val_loader, device, num_classes, test=True):
             y_pred = [int(x.cpu().numpy()) for x in predicted]
             for i in range(len(y_true)):
                 confusion_matrix[y_true[i], y_pred[i]] += 1
+                cm[y_true[i], y_pred[i]] += 1
 
             for i in range(len(y_true)):
                 patient_json[ids[i]]['true'] = y_true[i]
@@ -162,7 +164,7 @@ def evaluate(model, val_loader, device, num_classes, test=True):
             json_file.write(json.dumps(patient_json))
         ## end process patient_json ############################################
 
-        return accuracy, confusion_matrix, class_acc
+        return accuracy, confusion_matrix, class_acc, cm
 
 
 def show_curve_1(y1s, title):

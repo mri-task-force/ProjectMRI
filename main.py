@@ -69,7 +69,7 @@ log.logger.info('std_spacing_method: {}'.format(std_spacing_method))
 
 # init datasets
 mean_std, max_size_spc, global_hw_min_max_spc_world = process.load_dataset.init_dataset(
-    data_chooses=data_chooses, test_size=0.2, std_spacing_method=std_spacing_method, new_init=True
+    data_chooses=data_chooses, test_size=0.2, std_spacing_method=std_spacing_method, new_init=False
 )
 log.logger.info('mean_std: {}'.format(mean_std))
 log.logger.info('max_size_spc: {}'.format(max_size_spc))
