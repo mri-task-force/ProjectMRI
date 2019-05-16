@@ -5,8 +5,14 @@
 > by wu
 
 0. 添加了 `settings.py` ，全局变量包括文件名、文件路径、log对象，都放在这里
+
 1. 数据集的 loader 添加了 `num_workers=4`，加快速度
 
+2. tensorboard 画混淆矩阵
+
+   安装 `tbplot`
+
+   `pip install tensorflow-plot`
 
 
 ## 10/5/2019
