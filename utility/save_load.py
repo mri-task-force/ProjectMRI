@@ -11,7 +11,7 @@
 import torch
 
 # import the files of mine
-from logger import log
+from settings import log
 
 
 def save_model(model, path):

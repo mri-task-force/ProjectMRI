@@ -15,7 +15,8 @@ from tensorboardX import SummaryWriter
 import tensorflow as tf
 
 # import the files of mine
-from logger import log, tensorboard_dir
+from settings import log
+import settings
 import utility.evaluation
 
 
@@ -95,10 +96,10 @@ def fit(model, num_epochs, optimizer, device, train_loader, test_loader, train_l
     test_class_accs = [[],[],[]]
     
     ######### tensorboard #########
-    writer_loss = tf.summary.FileWriter(tensorboard_dir + '/train_loss/')
-    writer_acc = [tf.summary.FileWriter(tensorboard_dir + '/train/'), tf.summary.FileWriter(tensorboard_dir + '/test/')]
-    writer_train_class = [tf.summary.FileWriter(tensorboard_dir + '/train_class{}/'.format(i)) for i in range(3)]
-    writer_test_class = [tf.summary.FileWriter(tensorboard_dir + '/test_class{}/'.format(i)) for i in range(3)]
+    writer_loss = tf.summary.FileWriter(settings.DIR_tblog + '/train_loss/')
+    writer_acc = [tf.summary.FileWriter(settings.DIR_tblog + '/train/'), tf.summary.FileWriter(settings.DIR_tblog + '/test/')]
+    writer_train_class = [tf.summary.FileWriter(settings.DIR_tblog + '/train_class{}/'.format(i)) for i in range(3)]
+    writer_test_class = [tf.summary.FileWriter(settings.DIR_tblog + '/test_class{}/'.format(i)) for i in range(3)]
     
     log_var = [tf.Variable(0.0) for i in range(4)]
     tf.summary.scalar('train loss', log_var[0])
@@ -155,7 +156,7 @@ def fit(model, num_epochs, optimizer, device, train_loader, test_loader, train_l
             w.add_summary(summary, epoch)
             w.flush()
 
-        # with SummaryWriter(log_dir=tensorboard_dir, comment='train') as writer:
+        # with SummaryWriter(log_dir=settings.DIR_tblog, comment='train') as writer:
         #     writer.add_scalar('data/train_accuracy', train_accuracy, epoch)
         #     writer.add_scalar('data/test_accuracy', test_accuracy, epoch)
         

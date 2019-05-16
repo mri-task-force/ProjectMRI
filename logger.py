@@ -11,33 +11,7 @@
 import logging
 from logging import handlers
 import sys
-import datetime
-import os
 
-PATH_trained_model = './trained_model/'
-PATH_log = './log/'
-PATH_patient_result = './patient_result/'
-PATH_tblogs = './tblogs/'
-
-# create folders
-if not os.path.exists(PATH_trained_model):
-    os.makedirs(PATH_trained_model)
-if not os.path.exists(PATH_log):
-    os.makedirs(PATH_log)
-if not os.path.exists(PATH_patient_result):
-    os.makedirs(PATH_patient_result)
-if not os.path.exists(PATH_tblogs):
-    os.makedirs(PATH_tblogs)
-
-now_time = datetime.datetime.strftime(datetime.datetime.now(), '%Y-%m-%d-%H-%M-%S') + '='   # 用于以下文件名的命名
-
-is_aug = True
-model_name = '{}Model-spc-cut-aug'.format(now_time) if is_aug else '{}Model-spc-cut'.format(now_time) # to save the model
-patient_json_dir = ['{}{}patient-train-spc-cut.json'.format(PATH_patient_result, now_time), '{}{}patient-test-spc-cut.json'.format(PATH_patient_result, now_time)] 
-if is_aug: 
-    patient_json_dir = ['{}{}patient-train-spc-cut-aug.json'.format(PATH_patient_result, now_time), '{}{}patient-test-spc-cut-aug.json'.format(PATH_patient_result, now_time)]
-tensorboard_dir = '{}{}tblog-spc-cut-aug'.format(PATH_tblogs, now_time) if is_aug else '{}{}tblog-spc-cut'.format(PATH_tblogs, now_time)
-logger_file_path = '{}{}{}.log'.format(PATH_log, now_time, 'logger-spc-cut-aug' if is_aug else 'logger-spc-cut')
 
 class Logger(object):
     level_relations = {
@@ -61,8 +35,6 @@ class Logger(object):
         self.logger.addHandler(sh) # 把对象加到logger里
         self.logger.addHandler(th)
         
-log = Logger(logger_file_path, level='debug')
-
 
 class ImProgressBar(object):
     def __init__(self, total_iter, bar_len=50):

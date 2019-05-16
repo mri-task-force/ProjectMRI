@@ -28,7 +28,8 @@ import json
 import torchvision.transforms.functional as TF
 
 # import files of mine
-from logger import log, ImProgressBar
+from settings import log
+from logger import ImProgressBar
 
 
 # [39人小数据集, 651人CC_ROI, 363人6_ROI]
