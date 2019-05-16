@@ -33,33 +33,33 @@ from logger import ImProgressBar
 
 
 # [39人小数据集, 651人CC_ROI, 363人6_ROI]
-# dataset_paths = [{'xlsx_path': '/home/share/Datasets/data/information.xlsx',
-#                   'sheet_name': 'Sheet1',
-#                   'data_path': '/home/share/Datasets/data/',
-#                   'json_path': '/home/share/Datasets/data/split.json'},
-#                  {'xlsx_path': '/home/share/Datasets/2019_rect_pcr_data/information.xlsx',
-#                   'sheet_name': 0,
-#                   'data_path': '/home/share/Datasets/2019_rect_pcr_data/CC_ROI/',
-#                   'json_path': '/home/share/Datasets/2019_rect_pcr_data/CC_ROI/split.json'},
-#                  {'xlsx_path': '/home/share/Datasets/2019_rect_pcr_data/information.xlsx',
-#                   'sheet_name': 1,
-#                   'data_path': '/home/share/Datasets/2019_rect_pcr_data/6_ROI/',
-#                   'json_path': '/home/share/Datasets/2019_rect_pcr_data/6_ROI/split.json'}]
+dataset_paths = [{'xlsx_path': '/home/share/Datasets/data/information.xlsx',
+                  'sheet_name': 'Sheet1',
+                  'data_path': '/home/share/Datasets/data/',
+                  'json_path': '/home/share/Datasets/data/split.json'},
+                 {'xlsx_path': '/home/share/Datasets/2019_rect_pcr_data/information.xlsx',
+                  'sheet_name': 0,
+                  'data_path': '/home/share/Datasets/2019_rect_pcr_data/CC_ROI/',
+                  'json_path': '/home/share/Datasets/2019_rect_pcr_data/CC_ROI/split.json'},
+                 {'xlsx_path': '/home/share/Datasets/2019_rect_pcr_data/information.xlsx',
+                  'sheet_name': 1,
+                  'data_path': '/home/share/Datasets/2019_rect_pcr_data/6_ROI/',
+                  'json_path': '/home/share/Datasets/2019_rect_pcr_data/6_ROI/split.json'}]
 
 # json_path = '/home/share/Datasets/2019_rect_pcr_data/split.json'
 
-dataset_paths = [{'xlsx_path': '../../Datasets/data/information.xlsx',
-                  'sheet_name': 'Sheet1',
-                  'data_path': '../../Datasets/data/',
-                  'json_path': '../../Datasets/data/split.json'},
-                 {'xlsx_path': '../../Datasets/2019_rect_pcr_data/information.xlsx',
-                  'sheet_name': 0,
-                  'data_path': '../../Datasets/2019_rect_pcr_data/CC_ROI/',
-                  'json_path': '../../Datasets/2019_rect_pcr_data/CC_ROI/split.json'},
-                 {'xlsx_path': '../../Datasets/2019_rect_pcr_data/information.xlsx',
-                  'sheet_name': 1,
-                  'data_path': '../../Datasets/2019_rect_pcr_data/6_ROI/',
-                  'json_path': '../../Datasets/2019_rect_pcr_data/6_ROI/split.json'}]
+# dataset_paths = [{'xlsx_path': '../../Datasets/data/information.xlsx',
+#                   'sheet_name': 'Sheet1',
+#                   'data_path': '../../Datasets/data/',
+#                   'json_path': '../../Datasets/data/split.json'},
+#                  {'xlsx_path': '../../Datasets/2019_rect_pcr_data/information.xlsx',
+#                   'sheet_name': 0,
+#                   'data_path': '../../Datasets/2019_rect_pcr_data/CC_ROI/',
+#                   'json_path': '../../Datasets/2019_rect_pcr_data/CC_ROI/split.json'},
+#                  {'xlsx_path': '../../Datasets/2019_rect_pcr_data/information.xlsx',
+#                   'sheet_name': 1,
+#                   'data_path': '../../Datasets/2019_rect_pcr_data/6_ROI/',
+#                   'json_path': '../../Datasets/2019_rect_pcr_data/6_ROI/split.json'}]
 
 json_path = './process/split.json'
 

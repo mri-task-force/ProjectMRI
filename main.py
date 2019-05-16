@@ -32,7 +32,7 @@ from models.resnet import *
 from models.densenet import *
 
 # Device configuration, cpu, cuda:0/1/2/3 available
-device = torch.device('cuda:2')
+device = torch.device('cuda:5')
 data_chooses = [2]   # choose dataset. 0: the small dataset, 1: CC_ROI, 2: 6_ROI
 num_classes = 3 
 

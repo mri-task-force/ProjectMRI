@@ -115,6 +115,7 @@ def fit(model, num_epochs, optimizer, device, train_loader, test_loader, train_l
 
     writer_cm_train = tf.summary.FileWriter(settings.DIR_tb_cm + 'train', session.graph)
     writer_cm_test = tf.summary.FileWriter(settings.DIR_tb_cm + 'test', session.graph)
+
     ######### tensorboard #########
 
     for epoch in range(num_epochs):
