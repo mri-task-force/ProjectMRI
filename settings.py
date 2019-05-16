@@ -54,9 +54,4 @@ PATHS_patient_result_json = [
     '{}{}test.json'.format(_DIR_patient_result, now_time)
 ]
 
-print(PATH_model)
-print(DIR_tblog)
-print(PATH_log)
-print(PATHS_patient_result_json)
-
 log = logger.Logger(PATH_log, level='debug')
