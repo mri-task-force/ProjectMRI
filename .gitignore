@@ -4,6 +4,8 @@
 /tblogs
 /trained_model
 
+# json files
+*.json
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
