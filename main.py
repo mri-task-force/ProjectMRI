@@ -77,28 +77,31 @@ log.logger.info('std_spacing_method: {}'.format(std_spacing_method))
 # )
 mean_std, max_size_spc, global_hw_min_max_spc_world = process.load_dataset.init_dataset_crossval(
     data_chooses=data_chooses, K=5, std_spacing_method=std_spacing_method, new_init=False
-
+)
 log.logger.info('mean_std: {}'.format(mean_std))
 log.logger.info('max_size_spc: {}'.format(max_size_spc))
 log.logger.info('global_hw_min_max_spc_world: {}'.format(global_hw_min_max_spc_world))
 
 # data augmentation
 train_transform = transforms.Compose([
-    transforms.TenCrop(size=224)
-    # transforms.RandomRotation(degrees=[-10, 10]),
+    # transforms.TenCrop(size=224)
+    transforms.RandomHorizontalFlip(p=0.5),
+    transforms.RandomRotation(degrees=[-10, 10]),
     # transforms.RandomCrop(size=384)
-    # transforms.RandomHorizontalFlip(p=0.5)
-    # transforms.CenterCrop(size=max_size_spc),
+    
+    transforms.CenterCrop(size=224),
     # transforms.RandomRotation(degrees=[-10, 10]),
     # transforms.CenterCrop(size=512)
 ])
 
 train_eval_transform = transforms.Compose([
+    # transforms.Resize(size=224),
     # transforms.CenterCrop(size=max_size_spc)
     # transforms.CenterCrop(size=384)
 ])
 
 test_transform = transforms.Compose([
+    # transforms.Resize(size=224),
     # transforms.CenterCrop(size=max_size_spc)
     # transforms.CenterCrop(size=384)
 ])
@@ -108,11 +111,11 @@ log.logger.critical("train_eval_transform: \n{}".format(train_eval_transform))
 log.logger.critical("train_eval_transform: \n{}".format(test_transform))
 
 train_data = process.load_dataset.MriDataset(
-    k_choose=[1,2,3,4], transform=train_transform, is_spacing=is_spacing)
+    k_choose=[1,2,3,4], transform=train_transform, is_spacing=is_spacing, is_train=True)
 train_eval_data = process.load_dataset.MriDataset(
-    k_choose=[1,2,3,4], transform=train_eval_transform, is_spacing=is_spacing)
+    k_choose=[1,2,3,4], transform=train_eval_transform, is_spacing=is_spacing, is_train=False)
 test_data = process.load_dataset.MriDataset(
-    k_choose=[0], transform=test_transform, is_spacing=is_spacing)
+    k_choose=[0], transform=test_transform, is_spacing=is_spacing, is_train=False)
 
 train_loader = torch.utils.data.DataLoader(dataset=train_data, batch_size=batch_size, shuffle=False, sampler=train_data.get_sampler(), num_workers=4) if is_WeightedRandomSampler else torch.utils.data.DataLoader(dataset=train_data, batch_size=batch_size, shuffle=True, num_workers=4)
 train_loader_eval = torch.utils.data.DataLoader(dataset=train_eval_data, batch_size=batch_size, shuffle=False, num_workers=4)  # train dataset loader without WeightedRandomSampler, for evaluation
@@ -154,7 +157,8 @@ class_weight[2] *= 300
 loss_func = nn.CrossEntropyLoss(weight=torch.tensor(class_weight)) if is_class_weighted_loss_func else nn.CrossEntropyLoss()
 log.logger.info('class_weights: {}'.format(class_weight))
 log.logger.info(model)
-
+log.logger.critical('Start training')
+utility.fitting.fit(model, num_epochs, optimizer, device, train_loader, test_loader, train_loader_eval, num_classes, loss_func=loss_func, lr_decay_period=30, lr_decay_rate=2)
 try:
     log.logger.critical('Start training')
     utility.fitting.fit(model, num_epochs, optimizer, device, train_loader, test_loader, train_loader_eval, num_classes, loss_func=loss_func, lr_decay_period=30, lr_decay_rate=2)
