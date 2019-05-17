@@ -352,6 +352,57 @@ def init_dataset(data_chooses=[0], test_size=0.2, std_spacing_method="global_std
 
     ############################################################################################################
 
+    ## 以肿瘤为中心切割 ##########################################################################################
+    mincut_h, mincut_w = [], []
+    maxcut_h, maxcut_w = [], []
+    for dataset_type in ["train", "test"]:
+        for i, patient_info in enumerate(json_dataset[dataset_type]):
+            h_min, h_max, w_min, w_max = json_dataset[dataset_type][i]["tumor_hw_min_max_spc"]
+            json_dataset[dataset_type][i]["mincut"] = {
+                "i": h_min,
+                "j": w_min,
+                "h": h_max - h_min,
+                "w": w_max - w_min,
+                "hw_min_max": json_dataset[dataset_type][i]["tumor_hw_min_max_spc"]
+            }
+            tumor_origin = ( (h_min + h_max) / 2, (w_min + w_max) / 2 )         # 肿瘤中心点坐标
+            cur_slide_size_spc = json_dataset[dataset_type][i]["shape_spc"][0]  # 当前slide的大小 (spc后)
+            maxcut_halfsize = (                                                 # 最大切割的半高和半宽
+                min(tumor_origin[0], cur_slide_size_spc - tumor_origin[0]),
+                min(tumor_origin[1], cur_slide_size_spc - tumor_origin[1])
+            )
+            json_dataset[dataset_type][i]["maxcut"] = {
+                "i": int(round(tumor_origin[0] - maxcut_halfsize[0])),
+                "j": int(round(tumor_origin[1] - maxcut_halfsize[1])),
+                "h": int(round(2 * maxcut_halfsize[0])),
+                "w": int(round(2 * maxcut_halfsize[1])),
+                "hw_min_max": [
+                    int(round(tumor_origin[0] - maxcut_halfsize[0])),
+                    int(round(tumor_origin[0] + maxcut_halfsize[0])),
+                    int(round(tumor_origin[1] - maxcut_halfsize[1])),
+                    int(round(tumor_origin[1] + maxcut_halfsize[1])),
+                ]
+            }
+
+            mincut_h.append(json_dataset[dataset_type][i]["mincut"]["h"])
+            mincut_w.append(json_dataset[dataset_type][i]["mincut"]["w"])
+            maxcut_h.append(json_dataset[dataset_type][i]["maxcut"]["h"])
+            maxcut_w.append(json_dataset[dataset_type][i]["maxcut"]["w"])
+            # if mincut_h[-1] == 0 or maxcut_h[-1] == 0 or mincut_w[-1] == 0 or maxcut_w[-1] == 0:
+            #     print(mincut_h[-1], maxcut_h[-1], mincut_w[-1], maxcut_w[-1])
+            #     print(json_dataset[dataset_type][i]["path"])
+            
+    json_dataset["global_max_mincut_h"] = int(max(mincut_h))
+    json_dataset["global_max_mincut_w"] = int(max(mincut_w))
+    json_dataset["global_min_maxcut_h"] = int(min(maxcut_h))
+    json_dataset["global_min_maxcut_w"] = int(min(maxcut_w))
+
+    json_dataset["global_min_mincut_h"] = int(min(mincut_h))
+    json_dataset["global_min_mincut_w"] = int(min(mincut_w))
+    json_dataset["global_max_maxcut_h"] = int(max(maxcut_h))
+    json_dataset["global_max_maxcut_w"] = int(max(maxcut_w))
+    ############################################################################################################
+
     with open(json_path, 'w') as json_file:     
         json_file.write(json.dumps(json_dataset))   # 写入json
 
@@ -404,32 +455,51 @@ class MriDataset(Data.Dataset):
         img = read_image(self.dataset[index]['path'])   # img, 数据格式(h, w, c), 类型numpy int16
         img = Image.fromarray(img, mode="I;16")         # img, 数据格式(h, w, c), 类型PIL.Image.Image image mode=I;16
 
-        # -1. spacing resize
+        # # -1. spacing resize
+        # if self.is_spacing is True:
+        #     shape = self.dataset[index]["shape"]
+        #     shape_spc = self.dataset[index]["shape_spc"]
+        #     if shape[0] != shape_spc[0]:
+        #         img = img.resize(size=(shape_spc[0], shape_spc[1]), resample=Image.NEAREST) # spacing resize
+        #     if shape_spc[0] != self.max_size_spc:
+        #         img = transforms.Compose([transforms.CenterCrop(size=self.max_size_spc)])(img)  # centercrop to the max_img size
+
+        #     center_w = (self.global_hw_min_max_spc_world[3] + self.global_hw_min_max_spc_world[2]) / 2
+        #     llength = self.global_hw_min_max_spc_world[1] - self.global_hw_min_max_spc_world[0] + 1
+        #     left = int(round(center_w - llength / 2))
+        #     img = img.crop((
+        #         left,    # left
+        #         self.global_hw_min_max_spc_world[0],    # upper
+        #         left + llength,    # right
+        #         self.global_hw_min_max_spc_world[1]+1     # lower
+        #     ))
+        #     # img = img.crop((
+        #     #     self.global_hw_min_max_spc_world[2],    # left
+        #     #     self.global_hw_min_max_spc_world[0],    # upper
+        #     #     self.global_hw_min_max_spc_world[3]+1,    # right
+        #     #     self.global_hw_min_max_spc_world[1]+1     # lower
+        #     # ))
+        
+        # -2. spacing resize
         if self.is_spacing is True:
             shape = self.dataset[index]["shape"]
             shape_spc = self.dataset[index]["shape_spc"]
             if shape[0] != shape_spc[0]:
                 img = img.resize(size=(shape_spc[0], shape_spc[1]), resample=Image.NEAREST) # spacing resize
-            if shape_spc[0] != self.max_size_spc:
-                img = transforms.Compose([transforms.CenterCrop(size=self.max_size_spc)])(img)  # centercrop to the max_img size
 
-            center_w = (self.global_hw_min_max_spc_world[3] + self.global_hw_min_max_spc_world[2]) / 2
-            llength = self.global_hw_min_max_spc_world[1] - self.global_hw_min_max_spc_world[0] + 1
-            left = int(round(center_w - llength / 2))
-            img = img.crop((
-                left,    # left
-                self.global_hw_min_max_spc_world[0],    # upper
-                left + llength,    # right
-                self.global_hw_min_max_spc_world[1]+1     # lower
-            ))
-            # img = img.crop((
-            #     self.global_hw_min_max_spc_world[2],    # left
-            #     self.global_hw_min_max_spc_world[0],    # upper
-            #     self.global_hw_min_max_spc_world[3]+1,    # right
-            #     self.global_hw_min_max_spc_world[1]+1     # lower
-            # ))
-        
-        img = img.resize(size=(224, 224), resample=Image.NEAREST)
+            # -1. 以肿瘤中心切割
+            h_min, h_max, w_min, w_max = self.dataset[index]["tumor_hw_min_max_spc"]
+            tumor_origin = ( (h_min + h_max) / 2, (w_min + w_max) / 2 )         # 肿瘤中心点坐标
+            crop_size = 224     # 切割后图片大小
+            img = TF.crop(
+                img=img,        # Image to be cropped.
+                i=int(round(tumor_origin[0] - crop_size / 2)),   # Upper pixel coordinate.
+                j=int(round(tumor_origin[1] - crop_size / 2)),   # Left pixel coordinate.
+                h=crop_size,    # Height of the cropped image.
+                w=crop_size     # Width of the cropped image.
+            )
+
+        # img = img.resize(size=(224, 224), resample=Image.NEAREST)
 
         # 0. 在这里做数据增广
         if self.transform != None:
