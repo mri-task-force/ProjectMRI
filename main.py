@@ -38,7 +38,7 @@ num_classes = 3
 
 # Hyper parameters
 batch_size = 32
-num_epochs = 300
+num_epochs = 100
 lr = 0.001
 momentum = 0.9
 weight_decay = 1e-4
@@ -48,6 +48,10 @@ is_class_weighted_loss_func = True
 # data processing
 is_spacing = True
 std_spacing_method = "global_std_spacing_mode"
+
+# 一些说明
+message = "本次实验说明：class weight调整为100x [0],[1], 有交叉验证"
+log.logger.info(message)
 
 # Log the preset parameters and hyper parameters
 log.logger.info("Preset parameters:")
@@ -68,8 +72,11 @@ log.logger.info('is_spacing: {}'.format(is_spacing))
 log.logger.info('std_spacing_method: {}'.format(std_spacing_method))
 
 # init datasets
-mean_std, max_size_spc, global_hw_min_max_spc_world = process.load_dataset.init_dataset(
-    data_chooses=data_chooses, test_size=0.2, std_spacing_method=std_spacing_method, new_init=False
+# mean_std, max_size_spc, global_hw_min_max_spc_world = process.load_dataset.init_dataset(
+#     data_chooses=data_chooses, test_size=0.2, std_spacing_method=std_spacing_method, new_init=False
+# )
+mean_std, max_size_spc, global_hw_min_max_spc_world = process.load_dataset.init_dataset_crossval(
+    data_chooses=data_chooses, K=5, std_spacing_method=std_spacing_method, new_init=False
 )
 log.logger.info('mean_std: {}'.format(mean_std))
 log.logger.info('max_size_spc: {}'.format(max_size_spc))
@@ -99,9 +106,12 @@ log.logger.critical("train_transform: \n{}".format(train_transform))
 log.logger.critical("train_eval_transform: \n{}".format(train_eval_transform))
 log.logger.critical("train_eval_transform: \n{}".format(test_transform))
 
-train_data = process.load_dataset.MriDataset(train=True, transform=train_transform, is_spacing=is_spacing)
-train_eval_data = process.load_dataset.MriDataset(train=True, transform=train_eval_transform, is_spacing=is_spacing)
-test_data = process.load_dataset.MriDataset(train=False, transform=test_transform, is_spacing=is_spacing)
+train_data = process.load_dataset.MriDataset(
+    k_choose=[1,2,3,4], transform=train_transform, is_spacing=is_spacing)
+train_eval_data = process.load_dataset.MriDataset(
+    k_choose=[1,2,3,4], transform=train_eval_transform, is_spacing=is_spacing)
+test_data = process.load_dataset.MriDataset(
+    k_choose=[0], transform=test_transform, is_spacing=is_spacing)
 
 train_loader = torch.utils.data.DataLoader(dataset=train_data, batch_size=batch_size, shuffle=False, sampler=train_data.get_sampler(), num_workers=4) if is_WeightedRandomSampler else torch.utils.data.DataLoader(dataset=train_data, batch_size=batch_size, shuffle=True, num_workers=4)
 train_loader_eval = torch.utils.data.DataLoader(dataset=train_eval_data, batch_size=batch_size, shuffle=False, num_workers=4)  # train dataset loader without WeightedRandomSampler, for evaluation
@@ -128,11 +138,18 @@ def checkImage(num=5):
 
 # Declare and define the model, optimizer and loss_func
 # model = models.resnets.resnet18(pretrained=True, num_classes=num_classes, img_in_channels=1)
-# model = resnet34(pretrained=True, num_classes=num_classes)
+model = resnet34(pretrained=True, num_classes=num_classes)
 # model = resnet152(pretrained=True, num_classes=num_classes)
-model = densenet121(pretrained=True, num_classes=num_classes)
+# model = densenet121(pretrained=True, num_classes=num_classes)
+
 optimizer = torch.optim.SGD(params=model.parameters(), lr=lr, momentum=momentum, weight_decay=weight_decay)
 class_weight = train_data.get_class_weight()    # get the class weight of train dataset, used for the loss function
+# change class weight
+class_weight[1] *= 300
+class_weight[2] *= 300
+
+
+# print("class weight:", class_weight)
 loss_func = nn.CrossEntropyLoss(weight=torch.tensor(class_weight)) if is_class_weighted_loss_func else nn.CrossEntropyLoss()
 log.logger.info('class_weights: {}'.format(class_weight))
 log.logger.info(model)
