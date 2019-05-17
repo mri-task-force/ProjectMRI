@@ -3,7 +3,7 @@ import tensorflow as tf
 import matplotlib.pyplot as plt
 import numpy as np
 import sklearn.metrics
-import tfplot
+import io
 
 
 def plot_confusion_matrix(cm, class_names):
@@ -18,7 +18,7 @@ def plot_confusion_matrix(cm, class_names):
     cm_norm = np.around(cm.astype('float') / cm.sum(axis=1)[:, np.newaxis], decimals=4)
 
     figure = plt.figure(figsize=(5, 5))
-    plt.imshow(cm_norm, interpolation='nearest', cmap=plt.cm.Blues)
+    plt.imshow(cm_norm, interpolation='nearest', cmap=plt.cm.Blues, vmin=0.0, vmax=1.0)
     plt.title("Confusion matrix")
     plt.colorbar()
     tick_marks = np.arange(len(class_names))
@@ -28,9 +28,9 @@ def plot_confusion_matrix(cm, class_names):
     # cm = np.around(cm.astype('float') / cm.sum(axis=1)[:, np.newaxis], decimals=2)
     
     # Use white text if squares are dark; otherwise black.
-    threshold = cm.max() / 2.
+    threshold = cm_norm.max() / 2.
     for i, j in itertools.product(range(cm.shape[0]), range(cm.shape[1])):
-        color = "white" if cm[i, j] > threshold else "black"
+        color = "white" if cm_norm[i, j] > threshold else "black"
         plt.text(j, i, '{}({:.2f}%)'.format(cm[i, j], 100 * cm_norm[i, j]), horizontalalignment="center", color=color)
 
     plt.tight_layout()
@@ -40,6 +40,11 @@ def plot_confusion_matrix(cm, class_names):
     return figure
 
 
+if __name__ == "__main__":
+    cm = np.array([[2, 0, 0], [0, 0, 1], [1, 0, 2]])
+    print(cm)
+    figure = plot_confusion_matrix(cm, np.array(['0', '1', '2']))
+    
 # y_true = [2, 0, 2, 2, 0, 1]
 # y_pred = [0, 0, 2, 2, 0, 2]
 # cm = sklearn.metrics.confusion_matrix(y_true, y_pred)

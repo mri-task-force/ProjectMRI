@@ -32,7 +32,7 @@ from models.resnet import *
 from models.densenet import *
 
 # Device configuration, cpu, cuda:0/1/2/3 available
-device = torch.device('cuda:2')
+device = torch.device('cuda:5')
 data_chooses = [2]   # choose dataset. 0: the small dataset, 1: CC_ROI, 2: 6_ROI
 num_classes = 3 
 
@@ -77,18 +77,19 @@ log.logger.info('std_spacing_method: {}'.format(std_spacing_method))
 # )
 mean_std, max_size_spc, global_hw_min_max_spc_world = process.load_dataset.init_dataset_crossval(
     data_chooses=data_chooses, K=5, std_spacing_method=std_spacing_method, new_init=False
-)
+
 log.logger.info('mean_std: {}'.format(mean_std))
 log.logger.info('max_size_spc: {}'.format(max_size_spc))
 log.logger.info('global_hw_min_max_spc_world: {}'.format(global_hw_min_max_spc_world))
 
 # data augmentation
 train_transform = transforms.Compose([
+    transforms.TenCrop(size=224)
     # transforms.RandomRotation(degrees=[-10, 10]),
     # transforms.RandomCrop(size=384)
     # transforms.RandomHorizontalFlip(p=0.5)
     # transforms.CenterCrop(size=max_size_spc),
-    transforms.RandomRotation(degrees=[-10, 10]),
+    # transforms.RandomRotation(degrees=[-10, 10]),
     # transforms.CenterCrop(size=512)
 ])
 
