@@ -92,16 +92,12 @@ def fit(model, num_epochs, optimizer, device, train_loader, test_loader, train_l
 
     # log train loss and test accuracy
     losses = []
-    train_accs = []
-    test_accs = []
-    train_class_accs = [[],[],[]]
-    test_class_accs = [[],[],[]]
     
     ######### tensorboard #########
     writer_loss = tf.summary.FileWriter(settings.DIR_tblog + '/train_loss/')
     writer_acc = [tf.summary.FileWriter(settings.DIR_tblog + '/train/'), tf.summary.FileWriter(settings.DIR_tblog + '/test/')]
-    writer_train_class = [tf.summary.FileWriter(settings.DIR_tblog + '/train_class{}/'.format(i)) for i in range(3)]
-    writer_test_class = [tf.summary.FileWriter(settings.DIR_tblog + '/test_class{}/'.format(i)) for i in range(3)]
+    writer_train_class = [tf.summary.FileWriter(settings.DIR_tblog + '/train_class{}/'.format(i)) for i in range(num_classes)]
+    writer_test_class = [tf.summary.FileWriter(settings.DIR_tblog + '/test_class{}/'.format(i)) for i in range(num_classes)]
     
     log_var = [tf.Variable(0.0) for i in range(4)]
     tf.summary.scalar('train loss', log_var[0])
@@ -163,11 +159,11 @@ def fit(model, num_epochs, optimizer, device, train_loader, test_loader, train_l
             w.flush()
 
         # cm
-        summary = tfplot.figure.to_summary(utility.confusion.plot_confusion_matrix(train_cm, np.array(['0', '1', '2'])), tag='train')
+        summary = tfplot.figure.to_summary(utility.confusion.plot_confusion_matrix(train_cm, np.array([str(x) for x in range(num_classes)])), tag='train')
         writer_cm_train.add_summary(summary, epoch)
         writer_cm_train.flush()
 
-        summary = tfplot.figure.to_summary(utility.confusion.plot_confusion_matrix(test_cm, np.array(['0', '1', '2'])), tag='test')
+        summary = tfplot.figure.to_summary(utility.confusion.plot_confusion_matrix(test_cm, np.array([str(x) for x in range(num_classes)])), tag='test')
         writer_cm_test.add_summary(summary, epoch)
         writer_cm_test.flush()
 
@@ -176,20 +172,3 @@ def fit(model, num_epochs, optimizer, device, train_loader, test_loader, train_l
         #     writer.add_scalar('data/test_accuracy', test_accuracy, epoch)
         
         ######### tensorboard #########
-
-        train_accs.append(train_accuracy)
-        test_accs.append(test_accuracy)
-        train_class_accs[0].append(train_class_acc[0])
-        train_class_accs[1].append(train_class_acc[1])
-        train_class_accs[2].append(train_class_acc[2])
-        test_class_accs[0].append(test_class_acc[0])
-        test_class_accs[1].append(test_class_acc[1])
-        test_class_accs[2].append(test_class_acc[2])
-
-    # pyplot curves
-    utility.evaluation.show_curve_1(losses, "train loss")
-    utility.evaluation.show_curve_2(train_accs, test_accs, "acc")
-    utility.evaluation.show_curve_3(
-        train_class_accs[0], train_class_accs[1], train_class_accs[2], "train classes acc")
-    utility.evaluation.show_curve_3(
-        test_class_accs[0], test_class_accs[1], test_class_accs[2], "test classes acc")
