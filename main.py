@@ -32,7 +32,7 @@ from models.resnet import *
 from models.densenet import *
 
 # Device configuration, cpu, cuda:0/1/2/3 available
-device = torch.device('cuda:5')
+device = torch.device('cuda:6')
 data_chooses = [2]   # choose dataset. 0: the small dataset, 1: CC_ROI, 2: 6_ROI
 num_classes = 3 
 
@@ -50,7 +50,7 @@ is_spacing = True
 std_spacing_method = "global_std_spacing_mode"
 
 # 一些说明
-message = "本次实验说明：class weight调整为100x [0],[1], 有交叉验证"
+message = "本次实验说明：class weight调整为200x [0],[1], 有交叉验证当前为40val"
 log.logger.info(message)
 
 # Log the preset parameters and hyper parameters
@@ -111,11 +111,11 @@ log.logger.critical("train_eval_transform: \n{}".format(train_eval_transform))
 log.logger.critical("train_eval_transform: \n{}".format(test_transform))
 
 train_data = process.load_dataset.MriDataset(
-    k_choose=[1,2,3,4], transform=train_transform, is_spacing=is_spacing, is_train=True)
+    k_choose=[1,2,3], transform=train_transform, is_spacing=is_spacing, is_train=True)
 train_eval_data = process.load_dataset.MriDataset(
-    k_choose=[1,2,3,4], transform=train_eval_transform, is_spacing=is_spacing, is_train=False)
+    k_choose=[1,2,3], transform=train_eval_transform, is_spacing=is_spacing, is_train=False)
 test_data = process.load_dataset.MriDataset(
-    k_choose=[0], transform=test_transform, is_spacing=is_spacing, is_train=False)
+    k_choose=[0,4], transform=test_transform, is_spacing=is_spacing, is_train=False)
 
 train_loader = torch.utils.data.DataLoader(dataset=train_data, batch_size=batch_size, shuffle=False, sampler=train_data.get_sampler(), num_workers=4) if is_WeightedRandomSampler else torch.utils.data.DataLoader(dataset=train_data, batch_size=batch_size, shuffle=True, num_workers=4)
 train_loader_eval = torch.utils.data.DataLoader(dataset=train_eval_data, batch_size=batch_size, shuffle=False, num_workers=4)  # train dataset loader without WeightedRandomSampler, for evaluation
@@ -149,16 +149,16 @@ model = resnet34(pretrained=True, num_classes=num_classes)
 optimizer = torch.optim.SGD(params=model.parameters(), lr=lr, momentum=momentum, weight_decay=weight_decay)
 class_weight = train_data.get_class_weight()    # get the class weight of train dataset, used for the loss function
 # change class weight
-class_weight[1] *= 300
-class_weight[2] *= 300
+class_weight[1] *= 200
+class_weight[2] *= 200
 
 
 # print("class weight:", class_weight)
 loss_func = nn.CrossEntropyLoss(weight=torch.tensor(class_weight)) if is_class_weighted_loss_func else nn.CrossEntropyLoss()
 log.logger.info('class_weights: {}'.format(class_weight))
 log.logger.info(model)
-log.logger.critical('Start training')
-utility.fitting.fit(model, num_epochs, optimizer, device, train_loader, test_loader, train_loader_eval, num_classes, loss_func=loss_func, lr_decay_period=30, lr_decay_rate=2)
+# log.logger.critical('Start training')
+# utility.fitting.fit(model, num_epochs, optimizer, device, train_loader, test_loader, train_loader_eval, num_classes, loss_func=loss_func, lr_decay_period=30, lr_decay_rate=2)
 try:
     log.logger.critical('Start training')
     utility.fitting.fit(model, num_epochs, optimizer, device, train_loader, test_loader, train_loader_eval, num_classes, loss_func=loss_func, lr_decay_period=30, lr_decay_rate=2)
