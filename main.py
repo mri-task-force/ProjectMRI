@@ -32,15 +32,15 @@ from models.resnet import *
 from models.densenet import *
 
 # Device configuration, cpu, cuda:0/1/2/3 available
-device = torch.device('cuda:6')
+device = torch.device('cuda:7')
 data_chooses = [2]   # choose dataset. 0: the small dataset, 1: CC_ROI, 2: 6_ROI
 
 # Hyper parameters
-batch_size = 32
+batch_size = 80
 num_epochs = 100
-lr = 0.001
+lr = 1e-4
 momentum = 0.9
-weight_decay = 1e-4
+weight_decay = 5e-4
 is_WeightedRandomSampler = False
 is_class_weighted_loss_func = True
 
@@ -86,25 +86,34 @@ log.logger.info('global_hw_min_max_spc_world: {}'.format(global_hw_min_max_spc_w
 # data augmentation
 train_transform = transforms.Compose([
     # transforms.TenCrop(size=224)
-    transforms.RandomHorizontalFlip(p=0.5),
-    # transforms.RandomRotation(degrees=[-10, 10]),
-    # transforms.RandomCrop(size=384)
-    
     # transforms.CenterCrop(size=224),
     # transforms.RandomRotation(degrees=[-10, 10]),
     # transforms.CenterCrop(size=512)
+
+    # transforms.RandomCrop(size=224),
+    transforms.RandomHorizontalFlip(p=0.5),
+    transforms.RandomVerticalFlip(p=0.5),
+    # transforms.ColorJitter(brightness=0.1, contrast=0.1),
 ])
 
 train_eval_transform = transforms.Compose([
     # transforms.Resize(size=224),
     # transforms.CenterCrop(size=max_size_spc)
     # transforms.CenterCrop(size=384)
+    # transforms.RandomCrop(size=224),
+    # transforms.RandomHorizontalFlip(p=0.5),
+    # transforms.RandomVerticalFlip(p=0.5),
+    # transforms.ColorJitter(brightness=0.1, contrast=0.1),
 ])
 
 test_transform = transforms.Compose([
     # transforms.Resize(size=224),
     # transforms.CenterCrop(size=max_size_spc)
     # transforms.CenterCrop(size=384)
+    # transforms.RandomCrop(size=224),
+    # transforms.RandomHorizontalFlip(p=0.5),
+    # transforms.RandomVerticalFlip(p=0.5),
+    # transforms.ColorJitter(brightness=0.1, contrast=0.1),
 ])
 
 log.logger.critical("train_transform: \n{}".format(train_transform))
@@ -117,6 +126,8 @@ train_eval_data = process.load_dataset.MriDataset(
     k_choose=[1,2,3,4], transform=train_eval_transform, is_spacing=is_spacing, is_train=False)
 test_data = process.load_dataset.MriDataset(
     k_choose=[0], transform=test_transform, is_spacing=is_spacing, is_train=False)
+
+
 
 train_loader = torch.utils.data.DataLoader(dataset=train_data, 
                                            batch_size=batch_size, 
@@ -142,14 +153,17 @@ def checkImage(num=5):
     """
     for _ in range(num):
         img_index = random.randint(1, 100)
-        print(train_data[img_index][0].shape)
-        print(train_data[img_index][0].dtype)
-        print(train_data[img_index][0])
-        np_img = train_data[img_index][0][0].numpy()
-        pil_image = Image.fromarray(np_img) # 数据格式为(h, w, c)
-        print(pil_image)
-        plt.imshow(np_img, cmap='gray')
-        plt.show()
+        img, target, id = train_data.__getitem__(img_index)
+        print(img)
+        print(type(img), img.shape)
+        # print(train_data[img_index][0].shape)
+        # print(train_data[img_index][0].dtype)
+        # print(train_data[img_index][0])
+        # np_img = train_data[img_index][0][0].numpy()
+        # pil_image = Image.fromarray(np_img) # 数据格式为(h, w, c)
+        # print(pil_image)
+        # plt.imshow(np_img, cmap='gray')
+        # plt.show()
         
     exit()
 # checkImage(5)
@@ -157,22 +171,23 @@ def checkImage(num=5):
 
 # Declare and define the model, optimizer and loss_func
 # model = models.resnets.resnet18(pretrained=True, num_classes=num_classes, img_in_channels=1)
-model = resnet34(pretrained=True, num_classes=settings.num_classes)
+# model = resnet34(pretrained=True, num_classes=settings.num_classes)
 # model = resnet152(pretrained=True, num_classes=num_classes)
-# model = densenet121(pretrained=True, num_classes=num_classes)
+model = densenet121(pretrained=True, num_classes=settings.num_classes)
 
 # optimizer = torch.optim.SGD(params=model.parameters(), lr=lr, momentum=momentum, weight_decay=weight_decay)
-optimizer = torch.optim.Adam(params=model.parameters(), weight_decay=weight_decay)
+optimizer = torch.optim.Adam(params=model.parameters(), weight_decay=weight_decay, lr=lr)
 
 class_weight = train_data.get_class_weight()    # get the class weight of train dataset, used for the loss function
 # change class weight
 # class_weight[1] *= 300
 # class_weight[2] *= 300
 
-
-# print("class weight:", class_weight)
 loss_func = nn.CrossEntropyLoss(weight=torch.tensor(class_weight)) if is_class_weighted_loss_func else nn.CrossEntropyLoss()
+
+log.logger.critical("optimizer: \n{}".format(optimizer))
 log.logger.info('class_weights: {}'.format(class_weight))
+log.logger.critical("loss_func: {}".format(loss_func))
 log.logger.info(model)
 try:
     log.logger.critical('Start training')
