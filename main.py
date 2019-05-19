@@ -42,7 +42,7 @@ lr = 0.001
 momentum = 0.9
 weight_decay = 1e-4
 is_WeightedRandomSampler = False
-is_class_weighted_loss_func = False
+is_class_weighted_loss_func = True
 
 # data processing
 is_spacing = True
@@ -75,7 +75,7 @@ log.logger.info('std_spacing_method: {}'.format(std_spacing_method))
 #     data_chooses=data_chooses, test_size=0.2, std_spacing_method=std_spacing_method, new_init=False
 # )
 mean_std, max_size_spc, global_hw_min_max_spc_world = process.load_dataset.init_dataset_crossval(
-    data_chooses=data_chooses, K=5, std_spacing_method=std_spacing_method, new_init=True
+    data_chooses=data_chooses, K=5, std_spacing_method=std_spacing_method, new_init=False
 )
 
 # exit(-1)
@@ -87,10 +87,10 @@ log.logger.info('global_hw_min_max_spc_world: {}'.format(global_hw_min_max_spc_w
 train_transform = transforms.Compose([
     # transforms.TenCrop(size=224)
     transforms.RandomHorizontalFlip(p=0.5),
-    transforms.RandomRotation(degrees=[-10, 10]),
+    # transforms.RandomRotation(degrees=[-10, 10]),
     # transforms.RandomCrop(size=384)
     
-    transforms.CenterCrop(size=224),
+    # transforms.CenterCrop(size=224),
     # transforms.RandomRotation(degrees=[-10, 10]),
     # transforms.CenterCrop(size=512)
 ])
@@ -161,8 +161,10 @@ model = resnet34(pretrained=True, num_classes=settings.num_classes)
 # model = resnet152(pretrained=True, num_classes=num_classes)
 # model = densenet121(pretrained=True, num_classes=num_classes)
 
-optimizer = torch.optim.SGD(params=model.parameters(), lr=lr, momentum=momentum, weight_decay=weight_decay)
-# class_weight = train_data.get_class_weight()    # get the class weight of train dataset, used for the loss function
+# optimizer = torch.optim.SGD(params=model.parameters(), lr=lr, momentum=momentum, weight_decay=weight_decay)
+optimizer = torch.optim.Adam(params=model.parameters(), weight_decay=weight_decay)
+
+class_weight = train_data.get_class_weight()    # get the class weight of train dataset, used for the loss function
 # change class weight
 # class_weight[1] *= 300
 # class_weight[2] *= 300
@@ -170,7 +172,7 @@ optimizer = torch.optim.SGD(params=model.parameters(), lr=lr, momentum=momentum,
 
 # print("class weight:", class_weight)
 loss_func = nn.CrossEntropyLoss(weight=torch.tensor(class_weight)) if is_class_weighted_loss_func else nn.CrossEntropyLoss()
-# log.logger.info('class_weights: {}'.format(class_weight))
+log.logger.info('class_weights: {}'.format(class_weight))
 log.logger.info(model)
 try:
     log.logger.critical('Start training')

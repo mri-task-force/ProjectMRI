@@ -19,7 +19,11 @@ server_8 = True  # 是否为8卡服务器
 model_name = 'model'
 class_specifier = {0: 0, 1: 1, 2: 2, 3: 3}      # 类别说明符, 便于做 2 ,3, 4 分类等
 
-num_classes = 4
+num_classes = set()
+
+for key, val in class_specifier.items():
+    num_classes.add(val)
+num_classes = len(num_classes)
 
 ##########################################################
 
