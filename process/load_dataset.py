@@ -422,7 +422,7 @@ def init_dataset_crossval(data_chooses=[0], K=5, std_spacing_method="global_std_
             # print(patient_id, patient_label)
             class_patients[patient_label].append(patient_id)
 
-        # print(len(class_patients[0]),len(class_patients[1]),len(class_patients[2]))
+        print(len(class_patients[0]),len(class_patients[1]),len(class_patients[2]), len(class_patients[3]))
 
         # 随机选择k-fold，没折比例相同
         for i in range(len(class_patients)):
@@ -830,7 +830,6 @@ class MriDataset(Data.Dataset):
             self.normalize = transforms.Compose(
                 [transforms.Normalize(mean=[mean_std[0]], std=[mean_std[1]])])
 
-
             self.dataset = []
             for i in k_choose:
                 self.dataset += self.dataset_info[str(i)]
@@ -846,60 +845,37 @@ class MriDataset(Data.Dataset):
         img = read_image(self.dataset[index]['path'])
         # img, 数据格式(h, w, c), 类型PIL.Image.Image image mode=I;16
         img = Image.fromarray(img, mode="I;16")
-
-        # # -1. spacing resize
+        
+        # # -2. spacing resize
         # if self.is_spacing is True:
         #     shape = self.dataset[index]["shape"]
         #     shape_spc = self.dataset[index]["shape_spc"]
         #     if shape[0] != shape_spc[0]:
         #         img = img.resize(size=(shape_spc[0], shape_spc[1]), resample=Image.NEAREST) # spacing resize
-        #     if shape_spc[0] != self.max_size_spc:
-        #         img = transforms.Compose([transforms.CenterCrop(size=self.max_size_spc)])(img)  # centercrop to the max_img size
 
-        #     center_w = (self.global_hw_min_max_spc_world[3] + self.global_hw_min_max_spc_world[2]) / 2
-        #     llength = self.global_hw_min_max_spc_world[1] - self.global_hw_min_max_spc_world[0] + 1
-        #     left = int(round(center_w - llength / 2))
-        #     img = img.crop((
-        #         left,    # left
-        #         self.global_hw_min_max_spc_world[0],    # upper
-        #         left + llength,    # right
-        #         self.global_hw_min_max_spc_world[1]+1     # lower
-        #     ))
-        #     # img = img.crop((
-        #     #     self.global_hw_min_max_spc_world[2],    # left
-        #     #     self.global_hw_min_max_spc_world[0],    # upper
-        #     #     self.global_hw_min_max_spc_world[3]+1,    # right
-        #     #     self.global_hw_min_max_spc_world[1]+1     # lower
-        #     # ))
-        
-        # -2. spacing resize
-        if self.is_spacing is True:
-            shape = self.dataset[index]["shape"]
-            shape_spc = self.dataset[index]["shape_spc"]
-            if shape[0] != shape_spc[0]:
-                img = img.resize(size=(shape_spc[0], shape_spc[1]), resample=Image.NEAREST) # spacing resize
+        # # -1. 以肿瘤中心切割
+        # h_min, h_max, w_min, w_max = self.dataset[index]["tumor_hw_min_max_spc"]
+        # tumor_origin = ( (h_min + h_max) / 2, (w_min + w_max) / 2 )         # 肿瘤中心点坐标
 
-        # -1. 以肿瘤中心切割
-        h_min, h_max, w_min, w_max = self.dataset[index]["tumor_hw_min_max_spc"]
-        tumor_origin = ( (h_min + h_max) / 2, (w_min + w_max) / 2 )         # 肿瘤中心点坐标
+        # if self.is_train is True:
+        #     crop_size = 250     # 切割后图片大小
+        # else:
+        #     crop_size = 224     # 切割后图片大小
 
-        if self.is_train is True:
-            crop_size = 250     # 切割后图片大小
-        else:
-            crop_size = 224     # 切割后图片大小
+        # img = TF.crop(
+        #     img=img,        # Image to be cropped.
+        #     i=int(round(tumor_origin[0] - crop_size / 2)),   # Upper pixel coordinate.
+        #     j=int(round(tumor_origin[1] - crop_size / 2)),   # Left pixel coordinate.
+        #     h=crop_size,    # Height of the cropped image.
+        #     w=crop_size     # Width of the cropped image.
+        # )
+        # # img = img.resize(size=(224, 224), resample=Image.NEAREST)
 
-        img = TF.crop(
-            img=img,        # Image to be cropped.
-            i=int(round(tumor_origin[0] - crop_size / 2)),   # Upper pixel coordinate.
-            j=int(round(tumor_origin[1] - crop_size / 2)),   # Left pixel coordinate.
-            h=crop_size,    # Height of the cropped image.
-            w=crop_size     # Width of the cropped image.
-        )
-        # img = img.resize(size=(224, 224), resample=Image.NEAREST)
+        # # 0. 在这里做数据增广
+        # if self.transform != None:
+        #     img = self.transform(img)
 
-        # 0. 在这里做数据增广
-        if self.transform != None:
-            img = self.transform(img)
+        img = img.resize(size=(224, 224), resample=Image.NEAREST)
 
         # 1. 转成tensor; img, 数据格式(c, h, w), 类型tensor torch.int16; 注意这里的ToTensor不会将像素值scale到0~1
         img = transforms.Compose([transforms.ToTensor()])(img)
@@ -924,7 +900,8 @@ class MriDataset(Data.Dataset):
     def get_class_weight(self):
         class_num = [0 for x in range(settings.num_classes)]   # 统计每类样本的数量
         for data in self.dataset:
-            class_num[data['label']] += 1
+            label = settings.class_specifier[data['label']]
+            class_num[label] += 1
 
         class_weight = [1.0 / x for x in class_num]
         """

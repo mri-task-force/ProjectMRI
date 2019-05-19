@@ -131,12 +131,13 @@ def evaluate(model, val_loader, device, num_classes, test=True):
 
         class_acc = []
         for i in range(num_classes):
-            log.logger.info('Confusion Matrix on {} set (class {}): {:5d} {:5d} {:5d} {:5d}  Acc: {}/{} ({:.4f}%)'.format(
+            message = ""
+            for j in range(num_classes):
+                message += "{:5d} ".format(int(confusion_matrix[i,j]))
+
+            log.logger.info('Confusion Matrix on {} set (class {}): {} Acc: {}/{} ({:.4f}%)'.format(
                 'test ' if test else 'train', i, 
-                int(confusion_matrix[i, 0]), 
-                int(confusion_matrix[i, 1]), 
-                int(confusion_matrix[i, 2]),
-                int(confusion_matrix[i, 3]),
+                message,
                 int(confusion_matrix[i, i]),
                 int(confusion_matrix[i, -2]), 
                 100 * float(confusion_matrix[i, -1])
