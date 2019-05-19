@@ -34,7 +34,6 @@ from models.densenet import *
 # Device configuration, cpu, cuda:0/1/2/3 available
 device = torch.device('cuda:6')
 data_chooses = [2]   # choose dataset. 0: the small dataset, 1: CC_ROI, 2: 6_ROI
-num_classes = 3 
 
 # Hyper parameters
 batch_size = 32
@@ -43,7 +42,7 @@ lr = 0.001
 momentum = 0.9
 weight_decay = 1e-4
 is_WeightedRandomSampler = False
-is_class_weighted_loss_func = True
+is_class_weighted_loss_func = False
 
 # data processing
 is_spacing = True
@@ -57,7 +56,7 @@ log.logger.info(message)
 log.logger.info("Preset parameters:")
 log.logger.info('model_name: {}'.format(settings.model_name))
 log.logger.info('data_chooses: {}'.format(data_chooses))
-log.logger.info('num_classes: {}'.format(num_classes))
+log.logger.info('num_classes: {}'.format(settings.num_classes))
 log.logger.info('device: {}'.format(device))
 
 log.logger.info("Hyper parameters:")
@@ -76,8 +75,10 @@ log.logger.info('std_spacing_method: {}'.format(std_spacing_method))
 #     data_chooses=data_chooses, test_size=0.2, std_spacing_method=std_spacing_method, new_init=False
 # )
 mean_std, max_size_spc, global_hw_min_max_spc_world = process.load_dataset.init_dataset_crossval(
-    data_chooses=data_chooses, K=5, std_spacing_method=std_spacing_method, new_init=False
+    data_chooses=data_chooses, K=5, std_spacing_method=std_spacing_method, new_init=True
 )
+
+# exit(-1)
 log.logger.info('mean_std: {}'.format(mean_std))
 log.logger.info('max_size_spc: {}'.format(max_size_spc))
 log.logger.info('global_hw_min_max_spc_world: {}'.format(global_hw_min_max_spc_world))
@@ -111,15 +112,29 @@ log.logger.critical("train_eval_transform: \n{}".format(train_eval_transform))
 log.logger.critical("train_eval_transform: \n{}".format(test_transform))
 
 train_data = process.load_dataset.MriDataset(
-    k_choose=[1,2,3], transform=train_transform, is_spacing=is_spacing, is_train=True)
+    k_choose=[1,2,3,4], transform=train_transform, is_spacing=is_spacing, is_train=True)
 train_eval_data = process.load_dataset.MriDataset(
-    k_choose=[1,2,3], transform=train_eval_transform, is_spacing=is_spacing, is_train=False)
+    k_choose=[1,2,3,4], transform=train_eval_transform, is_spacing=is_spacing, is_train=False)
 test_data = process.load_dataset.MriDataset(
-    k_choose=[0,4], transform=test_transform, is_spacing=is_spacing, is_train=False)
+    k_choose=[0], transform=test_transform, is_spacing=is_spacing, is_train=False)
 
-train_loader = torch.utils.data.DataLoader(dataset=train_data, batch_size=batch_size, shuffle=False, sampler=train_data.get_sampler(), num_workers=4) if is_WeightedRandomSampler else torch.utils.data.DataLoader(dataset=train_data, batch_size=batch_size, shuffle=True, num_workers=4)
-train_loader_eval = torch.utils.data.DataLoader(dataset=train_eval_data, batch_size=batch_size, shuffle=False, num_workers=4)  # train dataset loader without WeightedRandomSampler, for evaluation
-test_loader = torch.utils.data.DataLoader(dataset=test_data, batch_size=batch_size, shuffle=False, num_workers=4)              # test dataset loader, for evaluation
+train_loader = torch.utils.data.DataLoader(dataset=train_data, 
+                                           batch_size=batch_size, 
+                                           shuffle=False, 
+                                           sampler=train_data.get_sampler(), 
+                                           num_workers=4) if is_WeightedRandomSampler else torch.utils.data.DataLoader(dataset=train_data, 
+                                                                                                                       batch_size=batch_size, 
+                                                                                                                       shuffle=True, 
+                                                                                                                       num_workers=4)
+
+train_loader_eval = torch.utils.data.DataLoader(dataset=train_eval_data, 
+                                                batch_size=batch_size, 
+                                                shuffle=False, 
+                                                num_workers=4)  # train dataset loader without WeightedRandomSampler, for evaluation
+test_loader = torch.utils.data.DataLoader(dataset=test_data, 
+                                          batch_size=batch_size, 
+                                          shuffle=False, 
+                                          num_workers=4)              # test dataset loader, for evaluation
 
 def checkImage(num=5):
     """
@@ -142,26 +157,24 @@ def checkImage(num=5):
 
 # Declare and define the model, optimizer and loss_func
 # model = models.resnets.resnet18(pretrained=True, num_classes=num_classes, img_in_channels=1)
-model = resnet34(pretrained=True, num_classes=num_classes)
+model = resnet34(pretrained=True, num_classes=settings.num_classes)
 # model = resnet152(pretrained=True, num_classes=num_classes)
 # model = densenet121(pretrained=True, num_classes=num_classes)
 
 optimizer = torch.optim.SGD(params=model.parameters(), lr=lr, momentum=momentum, weight_decay=weight_decay)
-class_weight = train_data.get_class_weight()    # get the class weight of train dataset, used for the loss function
+# class_weight = train_data.get_class_weight()    # get the class weight of train dataset, used for the loss function
 # change class weight
-class_weight[1] *= 200
-class_weight[2] *= 200
+# class_weight[1] *= 300
+# class_weight[2] *= 300
 
 
 # print("class weight:", class_weight)
 loss_func = nn.CrossEntropyLoss(weight=torch.tensor(class_weight)) if is_class_weighted_loss_func else nn.CrossEntropyLoss()
-log.logger.info('class_weights: {}'.format(class_weight))
+# log.logger.info('class_weights: {}'.format(class_weight))
 log.logger.info(model)
-# log.logger.critical('Start training')
-# utility.fitting.fit(model, num_epochs, optimizer, device, train_loader, test_loader, train_loader_eval, num_classes, loss_func=loss_func, lr_decay_period=30, lr_decay_rate=2)
 try:
     log.logger.critical('Start training')
-    utility.fitting.fit(model, num_epochs, optimizer, device, train_loader, test_loader, train_loader_eval, num_classes, loss_func=loss_func, lr_decay_period=30, lr_decay_rate=2)
+    utility.fitting.fit(model, num_epochs, optimizer, device, train_loader, test_loader, train_loader_eval, settings.num_classes, loss_func=loss_func, lr_decay_period=30, lr_decay_rate=2)
 except KeyboardInterrupt as e:
     log.logger.error('KeyboardInterrupt: {}'.format(e))
 except Exception as e:
@@ -173,10 +186,10 @@ finally:
         path=settings.PATH_model
     )
     model = utility.save_load.load_model(
-        model=densenet121(pretrained=True, num_classes=num_classes),
+        model=resnet34(pretrained=True, num_classes=settings.num_classes),
         path=settings.PATH_model,
         device=device
     )
-    utility.evaluation.evaluate(model=model, val_loader=train_loader_eval, device=device, num_classes=3, test=False)
-    utility.evaluation.evaluate(model=model, val_loader=test_loader, device=device, num_classes=3, test=True)
+    utility.evaluation.evaluate(model=model, val_loader=train_loader_eval, device=device, num_classes=settings.num_classes, test=False)
+    utility.evaluation.evaluate(model=model, val_loader=test_loader, device=device, num_classes=settings.num_classes, test=True)
     log.logger.info('Finished')

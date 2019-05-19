@@ -11,12 +11,8 @@
 import os
 import sys
 sys.path.append('../')
-import pickle
-
-import matplotlib.pylab as plt
 import numpy as np
 import pandas as pd
-import pydicom
 import SimpleITK as sitk
 import torch
 import torch.utils.data as Data
@@ -28,52 +24,24 @@ import json
 import torchvision.transforms.functional as TF
 
 # import files of mine
+import settings
 from settings import log
-from logger import ImProgressBar
-
-
-# [39人小数据集, 651人CC_ROI, 363人6_ROI]
-dataset_paths = [{'xlsx_path': '/home/share/Datasets/data/information.xlsx',
-                  'sheet_name': 'Sheet1',
-                  'data_path': '/home/share/Datasets/data/',
-                  'json_path': '/home/share/Datasets/data/split.json'},
-                 {'xlsx_path': '/home/share/Datasets/2019_rect_pcr_data/information.xlsx',
-                  'sheet_name': 0,
-                  'data_path': '/home/share/Datasets/2019_rect_pcr_data/CC_ROI/',
-                  'json_path': '/home/share/Datasets/2019_rect_pcr_data/CC_ROI/split.json'},
-                 {'xlsx_path': '/home/share/Datasets/2019_rect_pcr_data/information.xlsx',
-                  'sheet_name': 1,
-                  'data_path': '/home/share/Datasets/2019_rect_pcr_data/6_ROI/',
-                  'json_path': '/home/share/Datasets/2019_rect_pcr_data/6_ROI/split.json'}]
-
-# json_path = '/home/share/Datasets/2019_rect_pcr_data/split.json'
-
-# dataset_paths = [{'xlsx_path': '../../Datasets/data/information.xlsx',
-#                   'sheet_name': 'Sheet1',
-#                   'data_path': '../../Datasets/data/',
-#                   'json_path': '../../Datasets/data/split.json'},
-#                  {'xlsx_path': '../../Datasets/2019_rect_pcr_data/information.xlsx',
-#                   'sheet_name': 0,
-#                   'data_path': '../../Datasets/2019_rect_pcr_data/CC_ROI/',
-#                   'json_path': '../../Datasets/2019_rect_pcr_data/CC_ROI/split.json'},
-#                  {'xlsx_path': '../../Datasets/2019_rect_pcr_data/information.xlsx',
-#                   'sheet_name': 1,
-#                   'data_path': '../../Datasets/2019_rect_pcr_data/6_ROI/',
-#                   'json_path': '../../Datasets/2019_rect_pcr_data/6_ROI/split.json'}]
-
-json_path = './process/split.json'
+from utility.logger import ImProgressBar
 
 mri_post_path = "/MRI/T2"
 tumor_post_path = "/MRI/T2tumor.mha"
 
 
 def _load_tumor(img_path):
-    '''
-        @ param: p_id为str类型，表示病人的编号
-        @ return: 返回这个病人的tumor标注的mri图像的(N,512,512)
+    """
+    读取肿瘤标记\\
+    Args: 
+        img_path: 肿瘤标记图像路径
+    Return: 
+        返回这个病人的tumor标注的mri图像的(N,512,512)
         读取一个病人的T2的mri图像的肿瘤标记图像，图像文件格式为mha
         mha为三维数组，元素为0/1 int
-    '''
+    """
     image_array = None
     if os.path.exists(img_path):
         image = sitk.ReadImage(img_path)
@@ -85,19 +53,22 @@ def _load_tumor(img_path):
 
 
 def _load_inf(data_choose):
-    ''' 
-        @ return: dict类型 p_id: label
-        读取information.xlsx文件，加载病人编号，标签
-    '''
-    xlsx_path = dataset_paths[data_choose]['xlsx_path']
-    sheet_name = dataset_paths[data_choose]['sheet_name']
-    data_path = dataset_paths[data_choose]['data_path']
+    """
+    读取information.xlsx文件，加载病人编号，标签\\
+    Args: 
+        data_choose: 数据集选择
+    Return: 
+        dict类型 p_id: label
+    """
+    xlsx_path = settings.PATHS_datasets[data_choose]['xlsx_path']
+    sheet_name = settings.PATHS_datasets[data_choose]['sheet_name']
+    data_path = settings.PATHS_datasets[data_choose]['data_path']
 
     # patients = {} # {p_id:label }
     df = pd.read_excel(io=xlsx_path, sheet_name=sheet_name)  # 打开excel文件
 
     patient_ids = df.iloc[:, 0].values  # 读取编号列
-    patient_labels = df[u'结局'].values  # 读取结局列
+    patient_labels = df[u'新辅助后病理疗效评价'].values  # 读取结局列
     patient_T2_resolution = df[u'T2序列分辨率'].values # 读取T2序列分辨率
 
     patient_T2_resolution = patient_T2_resolution[~np.isnan(patient_labels)]  # 删掉 nan
@@ -106,7 +77,7 @@ def _load_inf(data_choose):
 
     # print("2", len(patient_ids), len(patient_labels), len(patient_T2_resolution))
     
-    patient_labels = patient_labels - 1  # 1/2/3 -> 0/1/2
+    patient_labels = patient_labels  # 1/2/3 -> 0/1/2
 
     output = {}
 
@@ -121,6 +92,7 @@ def _load_inf(data_choose):
         if os.path.exists(data_path + patient_ids[i] + mri_post_path):
             output[patient_ids[i]] = patient_labels[i]
     
+    log.logger.info(output)
     return output  # eg: {sub001: 0, sub002: 0} 
 
 
@@ -128,12 +100,15 @@ def _get_image_paths(data_choose, patient_id):
     """
     获取一个病人的所有slides的路径, 除去没有肿瘤区域的slides
     return a `list`, the paths of the images (slides) in `img_dir`\\
-    Args: \\
-        img_dir: the directory of the images (slides)\\
+    Args: 
+        data_choose: 
+        patient_id: 
+    Return: 
+        
     """
     # if there is no such directory, return an empty list.
     # Notice: Some directories are in the excel file, while not exist in the dataset folder.
-    data_path = dataset_paths[data_choose]['data_path']
+    data_path = settings.PATHS_datasets[data_choose]['data_path']
     img_dir = data_path + patient_id + mri_post_path
     tumor_dir = data_path + patient_id + tumor_post_path 
 
@@ -196,8 +171,8 @@ def init_dataset(data_chooses=[0], test_size=0.2, std_spacing_method="global_std
     Return: \\
         `mean_std`: 训练集和测试集的mean, std
     """
-    if os.path.exists(json_path) and (new_init is False):
-        with open(json_path) as json_file:
+    if os.path.exists(settings.PATH_split_json) and (new_init is False):
+        with open(settings.PATH_split_json) as json_file:
             data_info = json.load(json_file)
             return data_info["mean_std"], data_info["max_size_spc"], data_info["global_hw_min_max_spc_world"]
 
@@ -403,7 +378,7 @@ def init_dataset(data_chooses=[0], test_size=0.2, std_spacing_method="global_std
     json_dataset["global_max_maxcut_w"] = int(max(maxcut_w))
     ############################################################################################################
 
-    with open(json_path, 'w') as json_file:     
+    with open(settings.PATH_split_json, 'w') as json_file:     
         json_file.write(json.dumps(json_dataset))   # 写入json
 
     return mean_std, max_size_spc, json_dataset["global_hw_min_max_spc_world"]
@@ -426,29 +401,28 @@ def init_dataset_crossval(data_chooses=[0], K=5, std_spacing_method="global_std_
     Return: \\
         `mean_std`: 训练集和测试集的mean, std
     """
-    if os.path.exists(json_path) and (new_init is False):
-        with open(json_path) as json_file:
+    if os.path.exists(settings.PATH_split_json) and (new_init is False):
+        with open(settings.PATH_split_json) as json_file:
             data_info = json.load(json_file)
             return data_info["mean_std"], data_info["max_size_spc"], data_info["global_hw_min_max_spc_world"]
 
-    json_dataset = {"0": [], "1": [], "2": [],
-                    "3": [], "4": []}  # 储存路径、label和id
-
+    json_dataset = {str(x): [] for x in range(K)}    # 储存路径、label和id
 
     ## 划分数据集 ################################################################################################
     for data_choose in data_chooses:
         log.logger.info("Initializing dataset {} ...".format(data_choose))
 
         patients = _load_inf(data_choose)  # 读取病人的编号及结局（标签）{sub001:0, sub002:0}
-        dataset = {"0": {}, "1": {}, "2":{}, "3":{}, "4":{}}  # 储存id和label
+        dataset = {str(x): {} for x in range(K)}  # 储存id和label
 
-        class_patients = [[], [], []]
+        class_patients = [[] for x in range(settings.num_classes)]
 
         # 划分训练集和测试集
         for patient_id, patient_label in patients.items():
+            # print(patient_id, patient_label)
             class_patients[patient_label].append(patient_id)
 
-        # print(len(class_patients[0]),len(class_patients[1]),len(class_patients[2]))
+        print(len(class_patients[0]),len(class_patients[1]),len(class_patients[2]), len(class_patients[3]))
 
         # 随机选择k-fold，没折比例相同
         for i in range(len(class_patients)):
@@ -470,7 +444,7 @@ def init_dataset_crossval(data_chooses=[0], K=5, std_spacing_method="global_std_
             #     len(dataset["2"]),len(dataset["3"]),len(dataset["4"]))
 
         # 在json_dataset里记录信息
-        for dataset_type in ["0", "1", "2", "3", "4"]:
+        for dataset_type in [str(x) for x in range(K)]:
             hw_min_max = []
             for patient_id, patient_label in dataset[dataset_type].items():
                 mri_img_paths, tumor_index, tumor_hw_min_max = _get_image_paths(
@@ -518,7 +492,7 @@ def init_dataset_crossval(data_chooses=[0], K=5, std_spacing_method="global_std_
     ## 训练集和测试集分别统计均值方差，并记录一些信息 ##############################################################
     mean_std = {}
     global_spacing_list = [[], [], []]
-    for dataset_type in ["0", "1", "2", "3", "4"]:
+    for dataset_type in [str(x) for x in range(K)]:
         log.logger.info("Calculating {} dataset {} info (mean, std, spacing, hw_min_max, etc.)...".format(
             dataset_type, data_chooses))
         pbar = ImProgressBar(total_iter=len(json_dataset[dataset_type]))  # 进度条
@@ -585,7 +559,7 @@ def init_dataset_crossval(data_chooses=[0], K=5, std_spacing_method="global_std_
     ## 计算spacing之后的MRI和tumor的size, 以及h_w_min_max字段 ####################################################
     std_spacing = json_dataset[std_spacing_method]
     resize_coefs = []
-    for dataset_type in ["0", "1", "2", "3", "4"]:
+    for dataset_type in [str(x) for x in range(K)]:
         for i, patient_info in enumerate(json_dataset[dataset_type]):
             cur_spacing = json_dataset[dataset_type][i]["spacing"]
             resize_coef = [float(std_spacing[i] / cur_spacing[i])
@@ -644,7 +618,7 @@ def init_dataset_crossval(data_chooses=[0], K=5, std_spacing_method="global_std_
     ## 以肿瘤为中心切割 ##########################################################################################
     mincut_h, mincut_w = [], []
     maxcut_h, maxcut_w = [], []
-    for dataset_type in ["0", "1", "2", "3", "4"]:
+    for dataset_type in [str(x) for x in range(K)]:
         for i, patient_info in enumerate(json_dataset[dataset_type]):
             h_min, h_max, w_min, w_max = json_dataset[dataset_type][i]["tumor_hw_min_max_spc"]
             json_dataset[dataset_type][i]["mincut"] = {
@@ -692,7 +666,7 @@ def init_dataset_crossval(data_chooses=[0], K=5, std_spacing_method="global_std_
     json_dataset["global_max_maxcut_w"] = int(max(maxcut_w))
     ############################################################################################################
 
-    with open(json_path, 'w') as json_file:
+    with open(settings.PATH_split_json, 'w') as json_file:
         json_file.write(json.dumps(json_dataset))   # 写入json
 
     return mean_std, max_size_spc, json_dataset["global_hw_min_max_spc_world"]
@@ -724,7 +698,7 @@ def read_image(img_path):
 #             is_spacing: is perform spacing resize?
 #         """
 
-#         with open(json_path) as json_file:
+#         with open(settings.PATH_split_json) as json_file:
 #             self.data_type = "train" if train else "test"
 #             self.dataset_info = json.load(json_file)
 #             self.max_size_spc = self.dataset_info["max_size_spc"]
@@ -837,7 +811,7 @@ class MriDataset(Data.Dataset):
             k_choose:选择哪几折组合成数据集
         """
         self.is_train = is_train
-        with open(json_path) as json_file:
+        with open(settings.PATH_split_json) as json_file:
             self.k_choose = k_choose
             self.dataset_info = json.load(json_file)
             self.max_size_spc = self.dataset_info["max_size_spc"]
@@ -938,6 +912,7 @@ class MriDataset(Data.Dataset):
             img = self.normalize(img)
 
         label = self.dataset[index]['label']
+        label = settings.class_specifier[label]
         id = self.dataset[index]['id']
 
         # print(self.dataset[index]["resize_coef"])
@@ -947,7 +922,7 @@ class MriDataset(Data.Dataset):
         return len(self.dataset)
 
     def get_class_weight(self):
-        class_num = [0, 0, 0]   # 统计每类样本的数量
+        class_num = [0 for x in range(settings.num_classes)]   # 统计每类样本的数量
         for data in self.dataset:
             class_num[data['label']] += 1
 
