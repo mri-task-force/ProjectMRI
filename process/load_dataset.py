@@ -22,6 +22,7 @@ from PIL import Image
 import scipy.stats
 import json
 import torchvision.transforms.functional as TF
+import random
 
 # import files of mine
 import settings
@@ -761,7 +762,7 @@ class MriDataset(Data.Dataset):
         tumor_origin = ( (h_min + h_max) / 2, (w_min + w_max) / 2 )         # 肿瘤中心点坐标
 
         if self.is_train is True:
-            crop_size = 224     # 切割后图片大小
+            crop_size = 250     # 切割后图片大小
         else:
             crop_size = 224     # 切割后图片大小
 
@@ -772,6 +773,10 @@ class MriDataset(Data.Dataset):
             h=crop_size,    # Height of the cropped image.
             w=crop_size     # Width of the cropped image.
         )
+
+        if self.is_train is True:
+            random_size = random.randint(230, 270)
+            img = img.resize(size=(random_size, random_size))
         return img
 
     def _concatenate(self, img, index):
@@ -800,7 +805,7 @@ class MriDataset(Data.Dataset):
         peritumor = transforms.Compose([transforms.ToTensor()])(peritumor)
         peritumor = peritumor.float()
 
-        img = torch.cat(tensors=(tumor, img, peritumor), dim=0)
+        img = torch.cat(tensors=(img, tumor), dim=0)
         return img
 
     def __getitem__(self, index):

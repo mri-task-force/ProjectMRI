@@ -164,6 +164,22 @@ def evaluate(model, val_loader, device, num_classes, test=True):
 
         with open(settings.PATHS_patient_result_json[1 if test else 0], 'w') as json_file:  
             json_file.write(json.dumps(patient_json))
+
+
+        cm_patient = np.zeros((num_classes, num_classes), dtype=np.int)
+        for key, _ in patient_json.items():
+            cm_patient[patient_json[key]['true'], patient_json[key]['vote']] += 1
+        for i in range(num_classes):
+            message = ""
+            for j in range(num_classes):
+                message += "{:5d} ".format(int(cm_patient[i,j]))
+            log.logger.info('CM on {} set (class {}): {} Acc: {}/{} ({:.4f}%)'.format(
+                'test ' if test else 'train', i, 
+                message,
+                int(cm_patient[i, i]),
+                int(np.sum(cm_patient[i, :num_classes])), 
+                100 * float(cm_patient[i, i] / np.sum(cm_patient[i, :num_classes]))
+            ))
         ## end process patient_json ############################################
 
         return accuracy, confusion_matrix, class_acc, cm

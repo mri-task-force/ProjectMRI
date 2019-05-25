@@ -15,6 +15,7 @@ import os
 import utility.logger
 
 ## setttings #############################################
+new_init = False    # 是否重新初始化数据集(生成split.json)
 server_8 = True  # 是否为8卡服务器
 model_name = 'model'
 class_specifier = {0: 0, 1: 1, 2: 2, 3: 3}      # 类别说明符, 便于做 2 ,3, 4 分类等

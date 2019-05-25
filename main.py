@@ -32,7 +32,7 @@ from models.resnet import *
 from models.densenet import *
 
 # Device configuration, cpu, cuda:0/1/2/3 available
-device = torch.device('cuda:7')
+device = torch.device('cuda:3')
 data_chooses = [2]   # choose dataset. 0: the small dataset, 1: CC_ROI, 2: 6_ROI
 
 # Hyper parameters
@@ -75,7 +75,7 @@ log.logger.info('std_spacing_method: {}'.format(std_spacing_method))
 #     data_chooses=data_chooses, test_size=0.2, std_spacing_method=std_spacing_method, new_init=False
 # )
 mean_std, max_size_spc, global_hw_min_max_spc_world = process.load_dataset.init_dataset_crossval(
-    data_chooses=data_chooses, K=5, std_spacing_method=std_spacing_method, new_init=False
+    data_chooses=data_chooses, K=5, std_spacing_method=std_spacing_method, new_init=settings.new_init
 )
 
 # exit(-1)
@@ -89,8 +89,8 @@ train_transform = transforms.Compose([
     # transforms.CenterCrop(size=224),
     # transforms.RandomRotation(degrees=[-10, 10]),
     # transforms.CenterCrop(size=512)
-
-    # transforms.RandomCrop(size=224),
+    transforms.RandomCrop(size=224),
+    # transforms.RandomResizedCrop(size=224),
     transforms.RandomHorizontalFlip(p=0.5),
     transforms.RandomVerticalFlip(p=0.5),
     # transforms.ColorJitter(brightness=0.1, contrast=0.1),
@@ -171,9 +171,9 @@ def checkImage(num=5):
 
 # Declare and define the model, optimizer and loss_func
 # model = models.resnets.resnet18(pretrained=True, num_classes=num_classes, img_in_channels=1)
-# model = resnet34(pretrained=True, num_classes=settings.num_classes)
+model = resnet34(pretrained=True, num_classes=settings.num_classes)
 # model = resnet152(pretrained=True, num_classes=num_classes)
-model = densenet121(pretrained=True, num_classes=settings.num_classes)
+# model = densenet121(pretrained=True, num_classes=settings.num_classes)
 
 # optimizer = torch.optim.SGD(params=model.parameters(), lr=lr, momentum=momentum, weight_decay=weight_decay)
 optimizer = torch.optim.Adam(params=model.parameters(), weight_decay=weight_decay, lr=lr)
