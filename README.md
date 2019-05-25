@@ -1,4 +1,4 @@
-# :pencil2:2019.5.129 周日会议记录
+# :pencil2:2019.5.19 周日会议记录
 1. 尝试两种spacing：0.5 & 1.0
 2. 以病人的为单位统计 mean & std 并进行normlize，此过程忽略值为0的像素点;
 3. 尝试多通道组合：T2，tumor，lumen，peritumor;
