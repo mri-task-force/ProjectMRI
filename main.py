@@ -32,7 +32,7 @@ from models.resnet import *
 from models.densenet import *
 
 # Device configuration, cpu, cuda:0/1/2/3 available
-device = torch.device('cuda:3')
+device = torch.device('cuda:2')
 data_chooses = [2]   # choose dataset. 0: the small dataset, 1: CC_ROI, 2: 6_ROI
 
 # Hyper parameters
@@ -89,7 +89,7 @@ train_transform = transforms.Compose([
     # transforms.CenterCrop(size=224),
     # transforms.RandomRotation(degrees=[-10, 10]),
     # transforms.CenterCrop(size=512)
-    transforms.RandomCrop(size=224),
+    # transforms.RandomCrop(size=224),
     # transforms.RandomResizedCrop(size=224),
     transforms.RandomHorizontalFlip(p=0.5),
     transforms.RandomVerticalFlip(p=0.5),
@@ -121,11 +121,11 @@ log.logger.critical("train_eval_transform: \n{}".format(train_eval_transform))
 log.logger.critical("train_eval_transform: \n{}".format(test_transform))
 
 train_data = process.load_dataset.MriDataset(
-    k_choose=[1,2,3,4], transform=train_transform, is_spacing=is_spacing, is_train=True)
+    k_choose=settings.train_folds, transform=train_transform, is_spacing=is_spacing, is_train=True)
 train_eval_data = process.load_dataset.MriDataset(
-    k_choose=[1,2,3,4], transform=train_eval_transform, is_spacing=is_spacing, is_train=False)
+    k_choose=settings.train_folds, transform=train_eval_transform, is_spacing=is_spacing, is_train=False)
 test_data = process.load_dataset.MriDataset(
-    k_choose=[0], transform=test_transform, is_spacing=is_spacing, is_train=False)
+    k_choose=settings.test_folds, transform=test_transform, is_spacing=is_spacing, is_train=False)
 
 
 

@@ -76,9 +76,9 @@ def _load_inf(data_choose):
     patient_ids = patient_ids[~np.isnan(patient_labels)]       # 删掉 nan
     patient_labels = patient_labels[~np.isnan(patient_labels)].astype(np.long)  # 删掉 nan
 
-    # print("2", len(patient_ids), len(patient_labels), len(patient_T2_resolution))
+    print("2", len(patient_ids), len(patient_labels), len(patient_T2_resolution))
     
-    patient_labels = patient_labels  # 1/2/3 -> 0/1/2
+    # patient_labels = patient_labels
 
     output = {}
 
@@ -90,7 +90,7 @@ def _load_inf(data_choose):
         if patient_T2_resolution[i] != "512512":
             continue
         # 一个病人的路径    
-        if os.path.exists(data_path + patient_ids[i] + mri_post_path):
+        if os.path.exists(data_path + patient_ids[i] + mri_post_path):  # 如果病人路径存在，才加进去
             output[patient_ids[i]] = patient_labels[i]
     
     log.logger.info(output)
@@ -451,6 +451,11 @@ def init_dataset_crossval(data_chooses=[0], K=5, std_spacing_method="global_std_
             # print(len(dataset["0"]),len(dataset["1"]),
             #     len(dataset["2"]),len(dataset["3"]),len(dataset["4"]))
 
+        if settings.is_from_split is True:      # 根据settings.split来划分数据集
+            dataset = {}
+            for key, val in settings.split.items():
+                dataset[key] = {t_pid: patients[t_pid] for t_pid in val}
+        
         # 在json_dataset里记录信息
         for dataset_type in [str(x) for x in range(K)]:
             hw_min_max = []
@@ -464,7 +469,7 @@ def init_dataset_crossval(data_chooses=[0], K=5, std_spacing_method="global_std_
                         'path': mri_img_paths[i],
                         'tumor_dir': tumor_dir,
                         'peritumor_dir': peritumor_dir,
-                        'label': patient_label,
+                        'label': int(patient_label),
                         'id': str(data_choose) + '_' + patient_id,
                         'tumor_index': tumor_index[i],
                         'tumor_hw_min_max': tumor_hw_min_max[i]
@@ -574,7 +579,7 @@ def init_dataset_crossval(data_chooses=[0], K=5, std_spacing_method="global_std_
     for dataset_type in [str(x) for x in range(K)]:
         for i, patient_info in enumerate(json_dataset[dataset_type]):
             cur_spacing = json_dataset[dataset_type][i]["spacing"]
-            resize_coef = [float(std_spacing[i] / cur_spacing[i])
+            resize_coef = [float(cur_spacing[i] / std_spacing[i])
                            for i in range(len(cur_spacing))]
             resize_coefs.append(resize_coef[0])
             json_dataset[dataset_type][i]["resize_coef"] = resize_coef
@@ -622,6 +627,8 @@ def init_dataset_crossval(data_chooses=[0], K=5, std_spacing_method="global_std_
             json_dataset["3_hw_min_max_spc_world"][3],
             json_dataset["4_hw_min_max_spc_world"][3])
     ]
+    json_dataset["min_resize_coef"] = min(resize_coefs)
+    json_dataset["min_size_spc"] = int(round(json_dataset["min_resize_coef"] * 512))
     json_dataset["max_resize_coef"] = max_resize_coef
     json_dataset["max_size_spc"] = max_size_spc
 
@@ -762,7 +769,7 @@ class MriDataset(Data.Dataset):
         tumor_origin = ( (h_min + h_max) / 2, (w_min + w_max) / 2 )         # 肿瘤中心点坐标
 
         if self.is_train is True:
-            crop_size = 250     # 切割后图片大小
+            crop_size = 224     # 切割后图片大小
         else:
             crop_size = 224     # 切割后图片大小
 
@@ -774,9 +781,9 @@ class MriDataset(Data.Dataset):
             w=crop_size     # Width of the cropped image.
         )
 
-        if self.is_train is True:
-            random_size = random.randint(230, 270)
-            img = img.resize(size=(random_size, random_size))
+        # if self.is_train is True:
+        #     random_size = random.randint(230, 270)
+        #     img = img.resize(size=(random_size, random_size))
         return img
 
     def _concatenate(self, img, index):
